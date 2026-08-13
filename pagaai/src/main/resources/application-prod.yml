@@ -13,6 +13,13 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DB_POOL:5}
+      # Ajustado para banco que dorme (Neon suspende a compute apos ~5 min
+      # ocioso). Sem isto, o pool guarda conexoes que o servidor ja fechou e o
+      # primeiro acesso depois da pausa estoura erro na cara do usuario.
+      minimum-idle: 0            # pode zerar o pool: o banco tambem dorme
+      idle-timeout: 60000        # devolve conexao ociosa em 1 min
+      max-lifetime: 240000       # recicla em 4 min, antes da suspensao
+      connection-timeout: 30000  # da tempo do banco acordar
 
   flyway:
     enabled: true
