@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Entrar')}"></head>
+<body class="tela-login">
+
+<main class="cartao-login">
+    <h1 class="marca marca-grande">
+        <svg th:replace="~{fragmentos/layout :: simbolo}"></svg>
+        <span>Paga<b>aí</b></span>
+    </h1>
+    <p class="subtitulo">O caderninho do fiado que faz a conta sozinho</p>
+
+    <!--
+      A mensagem de erro e propositalmente vaga ("usuário ou senha"). Dizer
+      "usuário não existe" entregaria quais logins são válidos para quem tenta
+      adivinhar. Quem manda o ?erro na URL é o failureUrl do SecurityConfig.
+    -->
+    <p class="aviso aviso-erro" th:if="${param.erro}">Usuário ou senha inválidos.</p>
+    <p class="aviso aviso-ok" th:if="${param.saiu}">Você saiu do sistema.</p>
+
+    <form method="post" th:action="@{/login}">
+        <label for="username">Usuário</label>
+        <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+        <button type="submit" class="btn btn-primario btn-largo">Entrar</button>
+    </form>
+</main>
+
+</body>
+</html>

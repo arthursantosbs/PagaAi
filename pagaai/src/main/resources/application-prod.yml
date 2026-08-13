@@ -1,0 +1,75 @@
+# Perfil de producao: PostgreSQL + cookie seguro + segredos por variavel de ambiente.
+# Rode com: SPRING_PROFILES_ACTIVE=prod
+#
+# Variaveis obrigatorias: DB_URL, DB_USER, DB_PASSWORD, ADMIN_SENHA
+spring:
+  datasource:
+    # Use DB_URL quando tiver a URL JDBC inteira (docker compose, VPS).
+    # Plataformas que entregam host/porta/base separados (Render, Railway)
+    # so precisam definir DB_HOST, DB_PORT e DB_NAME.
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL:5}
+
+  flyway:
+    enabled: true
+    # Em producao NAO usamos baseline-on-migrate: se o banco tiver conteudo
+    # inesperado, e melhor o deploy falhar do que o Flyway assumir que esta tudo
+    # certo e seguir em frente.
+    baseline-on-migrate: false
+
+  jpa:
+    hibernate:
+      # Nunca "update" em producao. O Flyway manda no schema; o Hibernate so confere.
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  h2:
+    console:
+      enabled: false
+
+  thymeleaf:
+    cache: true
+
+server:
+  # As plataformas de hospedagem injetam a porta em PORT.
+  port: ${PORT:8080}
+  # Atras do proxy da hospedagem: faz o app enxergar https e o host real,
+  # senao os redirects de login voltam como http.
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # Cookie so viaja em https. Se ainda estiver testando por http (sem dominio),
+        # suba com COOKIE_SECURE=false — senao o navegador descarta a sessao e o
+        # login fica em loop. Volte para true assim que tiver https.
+        secure: ${COOKIE_SECURE:true}
+        same-site: lax
+      timeout: 12h
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+pagaai:
+  admin:
+    login: ${ADMIN_LOGIN:HERA123}
+    senha: ${ADMIN_SENHA}
+    nome: ${ADMIN_NOME:Administrador}
+
+logging:
+  level:
+    br.com.pagaai: INFO
+    org.hibernate.SQL: WARN

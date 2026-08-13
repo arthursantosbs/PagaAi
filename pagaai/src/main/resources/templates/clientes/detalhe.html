@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Cliente')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <div>
+                <h2 th:text="${cliente.nome}">Cliente</h2>
+                <p class="discreto" th:text="${cliente.enderecoResumido}"></p>
+            </div>
+            <div class="acoes">
+                <a class="btn btn-primario" th:href="@{'/cobrancas/nova?clienteId=' + ${cliente.id}}">Nova dívida</a>
+                <a class="btn btn-fantasma" th:href="@{'/clientes/' + ${cliente.id} + '/editar'}">Editar</a>
+            </div>
+        </header>
+
+        <dl class="ficha">
+            <div>
+                <dt>Telefone</dt>
+                <dd th:text="${cliente.telefone} ?: '-'"></dd>
+            </div>
+            <div>
+                <dt>Instagram</dt>
+                <dd>
+                    <a th:if="${cliente.instagramHandle}" target="_blank" rel="noopener"
+                       th:href="'https://instagram.com/' + ${cliente.instagramHandle}"
+                       th:text="'@' + ${cliente.instagramHandle}"></a>
+                    <span th:unless="${cliente.instagramHandle}">-</span>
+                </dd>
+            </div>
+            <div>
+                <dt>Deve no total</dt>
+                <dd class="forte" th:text="'R$ ' + ${#numbers.formatDecimal(totalDevido, 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Vencido e não pago</dt>
+                <dd th:classappend="${totalEmAtraso.signum() > 0} ? 'forte vermelho'"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(totalEmAtraso, 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Já pagou (histórico)</dt>
+                <dd class="verde" th:text="'R$ ' + ${#numbers.formatDecimal(totalPago, 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div th:if="${cliente.observacoes}">
+                <dt>Observações</dt>
+                <dd th:text="${cliente.observacoes}"></dd>
+            </div>
+        </dl>
+    </section>
+
+    <!-- Uma ficha por divida em aberto, com o formulario de recebimento junto. -->
+    <section class="bloco" th:each="s : ${abertas}" th:classappend="${s.emAtraso} ? 'bloco-alerta'">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>
+                    <a th:href="@{'/cobrancas/' + ${s.cobrancaId()}}" th:text="${s.descricao()}">Dívida</a>
+                </h2>
+                <p class="discreto">
+                    <span th:text="${s.parcelasQuitadas()} + ' de ' + ${s.parcelasTotais()} + ' parcelas pagas'"></span>
+                    <span th:if="${s.proximoVencimento() != null}"
+                          th:text="' - próximo vencimento em ' + ${#temporals.format(s.proximoVencimento(), 'dd/MM/yyyy')}"></span>
+                </p>
+            </div>
+            <span th:replace="~{fragmentos/layout :: etiquetaDivida(${s})}"></span>
+        </header>
+
+        <div th:replace="~{fragmentos/layout :: progresso(${s})}"></div>
+
+        <dl class="ficha ficha-compacta">
+            <div th:if="${s.valorFechado()}">
+                <dt>Total</dt>
+                <dd th:text="'R$ ' + ${#numbers.formatDecimal(s.valorTotal(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Pago</dt>
+                <dd class="verde" th:text="'R$ ' + ${#numbers.formatDecimal(s.totalPago(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Falta</dt>
+                <dd class="forte" th:text="'R$ ' + ${#numbers.formatDecimal(s.saldoDevedor(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div th:if="${s.emAtraso}">
+                <dt>Atrasado</dt>
+                <dd class="forte vermelho"
+                    th:text="'R$ ' + ${#numbers.formatDecimal(s.valorEmAtraso(), 1, 'POINT', 2, 'COMMA')} + ' (' + ${s.diasAtraso()} + ' dias)'"></dd>
+            </div>
+        </dl>
+
+        <div th:replace="~{fragmentos/layout :: formPagamento(${s}, ${hoje}, ${'/clientes/' + cliente.id})}"></div>
+    </section>
+
+    <section class="bloco" th:if="${#lists.isEmpty(abertas)}">
+        <p class="vazio">Este cliente não deve nada no momento.</p>
+    </section>
+
+    <section class="bloco" th:unless="${#lists.isEmpty(quitadas)}">
+        <header class="bloco-cabeca">
+            <h2>Dívidas quitadas</h2>
+        </header>
+        <div class="tabela-rolagem">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Dívida</th>
+                    <th class="num">Valor</th>
+                    <th class="num">Parcelas</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${quitadas}" class="pago">
+                    <td th:text="${s.descricao()}"></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(s.valorTotal(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num" th:text="${s.parcelasTotais()}"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/cobrancas/' + ${s.cobrancaId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Pagamentos recebidos</h2>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(pagamentos)}">Nenhum pagamento registrado.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(pagamentos)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Dívida</th>
+                    <th class="num">Valor</th>
+                    <th>Observação</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${pagamentos}">
+                    <td th:text="${#temporals.format(p.dataPagamento, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${p.cobranca.descricao}"></td>
+                    <td class="num verde forte" th:text="'R$ ' + ${#numbers.formatDecimal(p.valorPago, 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="discreto" th:text="${p.observacao}"></td>
+                    <td class="acoes">
+                        <form method="post" th:action="@{'/cobrancas/pagamentos/' + ${p.id} + '/estornar'}"
+                              onsubmit="return confirm('Estornar este pagamento?');">
+                            <input type="hidden" name="voltarPara" th:value="'/clientes/' + ${cliente.id}">
+                            <button type="submit" class="btn btn-fantasma">Estornar</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <form method="post" th:action="@{'/clientes/' + ${cliente.id} + '/excluir'}"
+              onsubmit="return confirm('Excluir o cliente e todo o histórico dele?');">
+            <button type="submit" class="btn btn-perigo">Excluir cliente</button>
+        </form>
+    </section>
+
+</main>
+
+</body>
+</html>

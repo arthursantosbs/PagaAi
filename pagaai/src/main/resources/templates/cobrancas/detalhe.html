@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Dívida')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <div>
+                <h2 th:text="${situacao.descricao()}">Dívida</h2>
+                <p class="discreto">
+                    <a th:href="@{'/clientes/' + ${situacao.clienteId()}}" th:text="${situacao.clienteNome()}"></a>
+                    <span th:text="' - ' + ${cobranca.resumoRecorrencia}"></span>
+                </p>
+            </div>
+            <div class="acoes">
+                <span th:replace="~{fragmentos/layout :: etiquetaDivida(${situacao})}"></span>
+                <a class="btn btn-fantasma" th:href="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/editar'}">Editar</a>
+            </div>
+        </header>
+
+        <div th:replace="~{fragmentos/layout :: progresso(${situacao})}"></div>
+
+        <dl class="ficha">
+            <div th:if="${situacao.valorFechado()}">
+                <dt>Valor total da dívida</dt>
+                <dd class="forte" th:text="'R$ ' + ${#numbers.formatDecimal(situacao.valorTotal(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Já pagou</dt>
+                <dd class="verde" th:text="'R$ ' + ${#numbers.formatDecimal(situacao.totalPago(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div>
+                <dt>Falta pagar</dt>
+                <dd class="forte" th:text="'R$ ' + ${#numbers.formatDecimal(situacao.saldoDevedor(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div th:if="${situacao.emAtraso}">
+                <dt>Vencido e não pago</dt>
+                <dd class="forte vermelho" th:text="'R$ ' + ${#numbers.formatDecimal(situacao.valorEmAtraso(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div th:if="${situacao.valorVencendoHoje().signum() > 0}">
+                <dt>Vence hoje</dt>
+                <dd th:text="'R$ ' + ${#numbers.formatDecimal(situacao.valorVencendoHoje(), 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+            <div th:if="${situacao.proximoVencimento() != null}">
+                <dt>Próximo vencimento</dt>
+                <dd th:text="${#temporals.format(situacao.proximoVencimento(), 'dd/MM/yyyy')}"></dd>
+            </div>
+            <div th:if="${situacao.valorPagoAMais.signum() > 0}">
+                <dt>Pagou a mais</dt>
+                <dd class="verde" th:text="'R$ ' + ${#numbers.formatDecimal(situacao.valorPagoAMais, 1, 'POINT', 2, 'COMMA')}"></dd>
+            </div>
+        </dl>
+
+        <p class="destaque-quitada" th:if="${situacao.quitada()}">
+            Dívida quitada. Não gera mais cobrança.
+        </p>
+    </section>
+
+    <section class="bloco" th:unless="${situacao.quitada()}">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Registrar recebimento</h2>
+                <p class="discreto">O valor pode ser parcial. O que faltar continua na conta.</p>
+            </div>
+        </header>
+        <div th:replace="~{fragmentos/layout :: formPagamento(${situacao}, ${hoje}, ${'/cobrancas/' + situacao.cobrancaId()})}"></div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Parcelas</h2>
+                <p class="discreto">Os pagamentos entram da parcela mais antiga para a mais nova.</p>
+            </div>
+        </header>
+
+        <div class="tabela-rolagem">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Vencimento</th>
+                    <th class="num">Valor</th>
+                    <th class="num">Pago</th>
+                    <th class="num">Falta</th>
+                    <th>Situação</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${situacao.parcelas()}" th:classappend="${p.severidade}">
+                    <td class="discreto" th:text="${p.numero()}"></td>
+                    <td th:text="${#temporals.format(p.vencimento(), 'dd/MM/yyyy')}"></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(p.valor(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num verde" th:text="'R$ ' + ${#numbers.formatDecimal(p.pago(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num forte" th:text="'R$ ' + ${#numbers.formatDecimal(p.saldo(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td>
+                        <span class="etiqueta" th:classappend="${p.severidade}"
+                              th:text="${p.situacao().descricao}"></span>
+                        <span class="etiqueta parcial" th:if="${p.parcial}">parcial</span>
+                        <span class="discreto" th:if="${p.diasAtraso() > 0}"
+                              th:text="${p.diasAtraso()} + ' dias'"></span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Pagamentos recebidos</h2>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(pagamentos)}">Nenhum pagamento registrado ainda.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(pagamentos)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th class="num">Valor</th>
+                    <th>Observação</th>
+                    <th>Registrado por</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${pagamentos}">
+                    <td th:text="${#temporals.format(p.dataPagamento, 'dd/MM/yyyy')}"></td>
+                    <td class="num verde forte" th:text="'R$ ' + ${#numbers.formatDecimal(p.valorPago, 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="discreto" th:text="${p.observacao}"></td>
+                    <td class="discreto" th:text="${p.registradoPor}"></td>
+                    <td class="acoes">
+                        <form method="post" th:action="@{'/cobrancas/pagamentos/' + ${p.id} + '/estornar'}"
+                              onsubmit="return confirm('Estornar este pagamento?');">
+                            <input type="hidden" name="voltarPara" th:value="'/cobrancas/' + ${situacao.cobrancaId()}">
+                            <button type="submit" class="btn btn-fantasma">Estornar</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <div class="acoes-formulario">
+            <form method="post" th:action="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/alternar'}">
+                <input type="hidden" name="voltarPara" th:value="'/cobrancas/' + ${situacao.cobrancaId()}">
+                <button type="submit" class="btn btn-fantasma"
+                        th:text="${cobranca.ativa} ? 'Pausar cobrança' : 'Retomar cobrança'"></button>
+            </form>
+            <form method="post" th:action="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/excluir'}"
+                  onsubmit="return confirm('Excluir esta dívida e todos os pagamentos dela?');">
+                <input type="hidden" name="voltarPara" th:value="'/clientes/' + ${situacao.clienteId()}">
+                <button type="submit" class="btn btn-perigo">Excluir dívida</button>
+            </form>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

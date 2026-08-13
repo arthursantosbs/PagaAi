@@ -1,0 +1,102 @@
+# Paga ai completo em um servidor: banco + app + https automatico.
+# Copie .env.example para .env, preencha, e suba com:
+#   docker compose up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_LOGIN: ${ADMIN_LOGIN}
+      ADMIN_SENHA: ${ADMIN_SENHA}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      PORT: 8080
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # Backup automatico do banco.
+  # Roda um pg_dump por dia, comprime, e apaga o que passar de BACKUP_DIAS.
+  # Os arquivos ficam em ./backups no servidor — COPIE PARA FORA dele tambem:
+  # backup que mora no mesmo disco do banco nao protege contra perder o disco.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # PGPASSWORD e lido pelo pg_dump automaticamente, sem senha na linha de comando.
+      PGPASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      BACKUP_DIAS: ${BACKUP_DIAS:-30}
+    volumes:
+      - ./backups:/backups
+    # $$ vira $ na hora de rodar; sem isso o compose tentaria trocar a variavel
+    # aqui em vez de deixar o shell do container resolver.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "Backup diario ativo. Mantendo $$BACKUP_DIAS dias em ./backups"
+        while true; do
+          ARQUIVO="/backups/pagaai-$$(date +%Y-%m-%d-%H%M).sql.gz"
+          if pg_dump -h db -U "$$DB_USER" -d "$$DB_NAME" | gzip > "$$ARQUIVO"; then
+            echo "$$(date -Iseconds) backup gerado: $$ARQUIVO ($$(du -h "$$ARQUIVO" | cut -f1))"
+          else
+            echo "$$(date -Iseconds) FALHA no backup"
+            rm -f "$$ARQUIVO"
+          fi
+          find /backups -name 'pagaai-*.sql.gz' -mtime +$$BACKUP_DIAS -delete
+          sleep 86400
+        done
+
+  # Termina o TLS e renova o certificado sozinho (Let's Encrypt).
+  # Precisa de um dominio apontando para o IP do servidor e das portas 80/443 abertas.
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMINIO: ${DOMINIO}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-config:/config
+
+volumes:
+  db-dados:
+  caddy-dados:
+  caddy-config:

@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "paga-ai",
+      "runtimeExecutable": "C:\\Users\\arthur\\.jdks\\ms-17.0.20\\bin\\java.exe",
+      "runtimeArgs": [
+        "-jar",
+        "C:\\Users\\arthur\\Desktop\\PagaAi\\pagaai\\target\\paga-ai-0.1.0.jar",
+        "--spring.datasource.url=jdbc:h2:file:C:/Users/arthur/Desktop/PagaAi/pagaai/data/pagaai"
+      ],
+      "port": 8080
+    }
+  ]
+}

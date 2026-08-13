@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Painel')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="indicadores">
+        <div class="indicador">
+            <span class="rotulo">Total a receber</span>
+            <strong class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalAReceber(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            <small th:text="${resumo.dividasAbertas()} + ' dívida(s) em aberto'"></small>
+        </div>
+        <div class="indicador destaque-vermelho">
+            <span class="rotulo">Vencido e não pago</span>
+            <strong class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalEmAtraso(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            <small th:text="${resumo.clientesEmAtraso()} + ' cliente(s) atrasado(s)'"></small>
+        </div>
+        <div class="indicador">
+            <span class="rotulo">Ainda vai vencer</span>
+            <strong class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalAVencer(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+        </div>
+        <div class="indicador destaque-verde">
+            <span class="rotulo">Recebido no mês</span>
+            <strong class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.recebidoNoMes(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+            <small th:text="${resumo.dividasQuitadas()} + ' dívida(s) quitada(s)'"></small>
+        </div>
+        <div class="indicador">
+            <span class="rotulo">Devedores</span>
+            <strong class="numero" th:text="${resumo.clientesDevedores()}">0</strong>
+            <small th:text="'de ' + ${resumo.totalClientes()} + ' cadastrados'"></small>
+        </div>
+        <div class="indicador">
+            <span class="rotulo">Maior atraso</span>
+            <strong class="numero" th:text="${resumo.maiorAtrasoEmDias()} + ' dias'">0</strong>
+        </div>
+    </section>
+
+    <!-- Bloco especial: quem passou da data. -->
+    <section class="bloco bloco-alerta">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Atrasados</h2>
+                <p class="discreto">Passaram da data e ainda não pagaram. Cobre estes primeiro.</p>
+            </div>
+            <a class="btn btn-primario" th:href="@{/cobrancas/nova}">Nova dívida</a>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(atrasados)}">Ninguém atrasado. Tudo dentro do prazo.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(atrasados)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Contato</th>
+                    <th class="num">Atrasado</th>
+                    <th class="num">Deve no total</th>
+                    <th class="num">Atraso</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${atrasados}" th:classappend="${d.severidade}">
+                    <td>
+                        <a th:href="@{'/clientes/' + ${d.clienteId()}}" th:text="${d.clienteNome()}">Cliente</a>
+                        <small class="discreto bloco-linha" th:text="${d.dividasAbertas()} + ' dívida(s)'"></small>
+                    </td>
+                    <td class="contato">
+                        <span th:if="${d.telefone()}" th:text="${d.telefone()}"></span>
+                        <a th:if="${d.instagram()}" target="_blank" rel="noopener"
+                           th:href="'https://instagram.com/' + ${#strings.replace(d.instagram(), '@', '')}"
+                           th:text="'@' + ${#strings.replace(d.instagram(), '@', '')}"></a>
+                    </td>
+                    <td class="num forte vermelho"
+                        th:text="'R$ ' + ${#numbers.formatDecimal(d.totalEmAtraso(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(d.totalDevido(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num">
+                        <span class="etiqueta" th:classappend="${d.severidade}"
+                              th:text="${d.diasAtraso()} + ' dias'"></span>
+                    </td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/clientes/' + ${d.clienteId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Todos os outros tambem sao devedores, so que ainda dentro do prazo. -->
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Devedores em dia</h2>
+                <p class="discreto">Devem, mas ainda não venceu.</p>
+            </div>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(emDia)}">Nenhuma dívida dentro do prazo no momento.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(emDia)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th class="num">Deve</th>
+                    <th class="num">Já pagou</th>
+                    <th>Próximo vencimento</th>
+                    <th class="num">Valor</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${emDia}">
+                    <td><a th:href="@{'/clientes/' + ${d.clienteId()}}" th:text="${d.clienteNome()}"></a></td>
+                    <td class="num forte" th:text="'R$ ' + ${#numbers.formatDecimal(d.totalDevido(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num discreto" th:text="'R$ ' + ${#numbers.formatDecimal(d.totalJaPago(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td th:text="${d.proximoVencimento() != null} ? ${#temporals.format(d.proximoVencimento(), 'dd/MM/yyyy')} : '-'"></td>
+                    <td class="num" th:text="${d.proximoValor() != null} ? 'R$ ' + ${#numbers.formatDecimal(d.proximoValor(), 1, 'POINT', 2, 'COMMA')} : '-'"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/clientes/' + ${d.clienteId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Vence nos próximos 7 dias</h2>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(agenda)}">Nada vencendo nesta semana.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(agenda)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Vencimento</th>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th class="num">Valor</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="i : ${agenda}">
+                    <td th:text="${#temporals.format(i.parcela().vencimento(), 'dd/MM')}"></td>
+                    <td><a th:href="@{'/clientes/' + ${i.cobranca().clienteId()}}"
+                           th:text="${i.cobranca().clienteNome()}"></a></td>
+                    <td th:text="${i.cobranca().descricao()}"></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(i.parcela().saldo(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/cobrancas/' + ${i.cobranca().cobrancaId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

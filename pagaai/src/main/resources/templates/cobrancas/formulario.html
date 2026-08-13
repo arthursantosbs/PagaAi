@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Dívida')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo estreito">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2 th:text="${form.id == null} ? 'Nova dívida' : 'Editar dívida'">Dívida</h2>
+        </header>
+
+        <form method="post" th:action="@{/cobrancas}" th:object="${form}" class="formulario">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="campo">
+                <label for="clienteId">Cliente *</label>
+                <select id="clienteId" th:field="*{clienteId}" required>
+                    <option value="">Selecione...</option>
+                    <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}"></option>
+                </select>
+                <small class="erro" th:if="${#fields.hasErrors('clienteId')}" th:errors="*{clienteId}"></small>
+            </div>
+
+            <div class="campo">
+                <label for="descricao">O que ele comprou / deve *</label>
+                <input id="descricao" type="text" th:field="*{descricao}"
+                       placeholder="Ex: 2 caixas de produto, fiado" required>
+                <small class="erro" th:if="${#fields.hasErrors('descricao')}" th:errors="*{descricao}"></small>
+            </div>
+
+            <div class="campo">
+                <label for="tipo">Tipo *</label>
+                <select id="tipo" th:field="*{tipo}" required>
+                    <option th:each="t : ${tipos}" th:value="${t}" th:text="${t.descricao}"></option>
+                </select>
+            </div>
+
+            <div class="campo" id="campoValorTotal">
+                <label for="valorTotal">Valor total da dívida (R$) *</label>
+                <input id="valorTotal" type="number" step="0.01" min="0.01" th:field="*{valorTotal}">
+                <small class="dica">Quando a soma dos pagamentos chegar aqui, a dívida quita sozinha.</small>
+                <small class="erro" th:if="${#fields.hasErrors('valorTotal')}" th:errors="*{valorTotal}"></small>
+            </div>
+
+            <div class="campo">
+                <label for="valorParcela" id="rotuloParcela">Valor de cada pagamento (R$)</label>
+                <input id="valorParcela" type="number" step="0.01" min="0.01" th:field="*{valorParcela}">
+                <small class="dica" id="dicaParcela">Deixe em branco se ele vai pagar tudo de uma vez.</small>
+                <small class="erro" th:if="${#fields.hasErrors('valorParcela')}" th:errors="*{valorParcela}"></small>
+            </div>
+
+            <div class="campo">
+                <label for="periodicidade">Com que frequência ele paga *</label>
+                <select id="periodicidade" th:field="*{periodicidade}" required>
+                    <option th:each="p : ${periodicidades}" th:value="${p}" th:text="${p.descricao}"></option>
+                </select>
+            </div>
+
+            <div class="campo" id="campoMensal">
+                <label for="diaDoMes">Dia do mês do pagamento *</label>
+                <select id="diaDoMes" th:field="*{diaDoMes}">
+                    <option value="">Selecione...</option>
+                    <option th:each="d : ${#numbers.sequence(1, 31)}" th:value="${d}" th:text="${d}"></option>
+                </select>
+                <small class="dica">Se o mês não tiver esse dia, o vencimento cai no último dia do mês.</small>
+            </div>
+
+            <div class="campo" id="campoSemanal">
+                <label for="diaDaSemana">Dia da semana do pagamento *</label>
+                <select id="diaDaSemana" th:field="*{diaDaSemana}">
+                    <option value="">Selecione...</option>
+                    <option th:each="d : ${diasSemana}" th:value="${d.key}" th:text="${d.value}"></option>
+                </select>
+            </div>
+
+            <div class="grade-2">
+                <div class="campo">
+                    <label for="dataInicio">Primeiro vencimento *</label>
+                    <input id="dataInicio" type="date" th:field="*{dataInicio}" required>
+                </div>
+                <div class="campo" id="campoDataFim">
+                    <label for="dataFim">Termina em (opcional)</label>
+                    <input id="dataFim" type="date" th:field="*{dataFim}">
+                    <small class="dica">Só para cobrança recorrente.</small>
+                </div>
+            </div>
+
+            <label class="checagem">
+                <input type="checkbox" th:field="*{ativa}"> Cobrança ativa
+            </label>
+
+            <div class="acoes-formulario">
+                <button type="submit" class="btn btn-primario">Salvar</button>
+                <a class="btn btn-fantasma" th:href="@{/cobrancas}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+
+</main>
+
+<script th:inline="none">
+    (function () {
+        var tipo = document.getElementById('tipo');
+        var periodicidade = document.getElementById('periodicidade');
+        var valorTotal = document.getElementById('campoValorTotal');
+        var dataFim = document.getElementById('campoDataFim');
+        var dicaParcela = document.getElementById('dicaParcela');
+        var rotuloParcela = document.getElementById('rotuloParcela');
+        var inputTotal = document.getElementById('valorTotal');
+        var mensal = document.getElementById('campoMensal');
+        var semanal = document.getElementById('campoSemanal');
+
+        function alternar() {
+            var fechado = tipo.value === 'VALOR_FECHADO';
+            valorTotal.style.display = fechado ? '' : 'none';
+            dataFim.style.display = fechado ? 'none' : '';
+            inputTotal.required = fechado;
+            rotuloParcela.textContent = fechado
+                ? 'Valor de cada pagamento (R$)'
+                : 'Valor cobrado por vez (R$) *';
+            dicaParcela.textContent = fechado
+                ? 'Deixe em branco se ele vai pagar tudo de uma vez.'
+                : 'Cobrança recorrente não tem valor total: cobra esse valor a cada vencimento.';
+
+            var ehMensal = periodicidade.value === 'MENSAL';
+            mensal.style.display = ehMensal ? '' : 'none';
+            semanal.style.display = ehMensal ? 'none' : '';
+        }
+
+        tipo.addEventListener('change', alternar);
+        periodicidade.addEventListener('change', alternar);
+        alternar();
+    })();
+</script>
+
+</body>
+</html>

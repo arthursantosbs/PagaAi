@@ -1,0 +1,737 @@
+/* ==========================================================================
+   PAGA AI — folha de estilo unica
+
+   Nao ha framework CSS. O arquivo e pequeno o bastante para ser lido inteiro,
+   e sem dependencia externa a pagina carrega sem rede.
+
+   ORGANIZACAO (na ordem em que aparecem abaixo):
+     1. tokens        as cores e medidas da marca, em variaveis CSS
+     2. base          reset minimo, body, links
+     3. barra         menu do topo e assinatura da marca
+     4. estrutura     conteudo, blocos, indicadores
+     5. tabelas       listagens e o semaforo de atraso
+     6. etiquetas     as pilulas de status
+     7. botoes
+     8. formularios
+     9. divida        barra de progresso e campo de recebimento
+    10. avisos
+    11. login
+    12. telas pequenas   (media query — sempre por ultimo)
+
+   MEXER AQUI IMPACTA TODAS AS TELAS. Nao existe CSS por pagina.
+   Identidade completa e razoes de contraste: BRANDING.md
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. TOKENS
+
+   Toda cor do sistema sai daqui. Trocar um valor nesta lista repinta o app
+   inteiro; escrever hex solto la embaixo cria uma cor orfa que ninguem acha
+   depois. Se precisar de uma cor nova, ela nasce aqui.
+   -------------------------------------------------------------------------- */
+:root {
+    /* Superficies e texto */
+    --fundo: #f6f7f9;
+    --superficie: #ffffff;
+    --borda: #e3e6ea;
+    --texto: #14181f;
+    --texto-fraco: #667085;      /* 5.04:1 sobre branco — passa em WCAG AA */
+
+    /* Marca */
+    --marca: #0f766e;            /* 5.47:1 sobre branco, e branco sobre ela */
+    --marca-escura: #0b5c55;
+    --marca-clara: #e6f4f1;
+
+    /* Nomes antigos, mantidos para nao quebrar regra existente.
+       Em codigo novo prefira --marca. */
+    --primaria: var(--marca);
+    --primaria-escura: var(--marca-escura);
+
+    /* Semaforo de atraso.
+       ATENCAO: a escada de dias (7 / 30) vive em dto/Severidade.java.
+       Mudou a faixa la, atualize a cor aqui — senao Java e CSS discordam. */
+    --ok: #15803d;               /* quitado, dinheiro que entrou      5.02:1 */
+    --alerta: #b45309;           /* atraso de 1 a 7 dias              5.02:1 */
+    --atencao: #ea580c;          /* atraso de 8 a 30 dias                    */
+    --perigo: #b91c1c;           /* atraso acima de 30 dias, exclusao 6.47:1 */
+
+    /* Medidas */
+    --raio: 12px;
+    --sombra: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fundo);
+    color: var(--texto);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--primaria);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- barra de navegacao ---------- */
+.barra {
+    background: var(--superficie);
+    border-bottom: 1px solid var(--borda);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.barra-interna {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: .75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Assinatura da marca: simbolo + palavra. Ver BRANDING.md secao 5. */
+.marca {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--texto);
+    letter-spacing: -.02em;
+}
+
+/* O SVG herda a cor por currentColor; e aqui que ela e definida. */
+.marca-simbolo {
+    width: 1.35em;
+    height: 1.35em;
+    color: var(--marca);
+    flex: none;
+}
+
+/* O "ai" em cor de marca. E <b> por peso visual, nao por enfase semantica. */
+.marca b {
+    color: var(--marca);
+    font-weight: 700;
+}
+
+.marca:hover {
+    text-decoration: none;
+}
+
+.marca-grande {
+    font-size: 2rem;
+    margin: 0;
+}
+
+.links {
+    display: flex;
+    gap: .25rem;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.links a {
+    padding: .4rem .75rem;
+    border-radius: 8px;
+    color: var(--texto-fraco);
+    font-weight: 500;
+}
+
+.links a:hover {
+    background: var(--fundo);
+    text-decoration: none;
+}
+
+.links a.ativo {
+    background: var(--marca-clara);
+    color: var(--marca-escura);
+}
+
+.sair {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.usuario {
+    color: var(--texto-fraco);
+    font-size: .85rem;
+}
+
+/* ---------- estrutura ---------- */
+.conteudo {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 4rem;
+}
+
+.conteudo.estreito {
+    max-width: 760px;
+}
+
+.bloco {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: 1rem 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.bloco-cabeca {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: .75rem;
+}
+
+.bloco-cabeca h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.bloco-cabeca p {
+    margin: .15rem 0 0;
+}
+
+/* ---------- indicadores ---------- */
+.indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+
+.indicador {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    padding: .85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+
+.indicador .rotulo {
+    color: var(--texto-fraco);
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.indicador .numero {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.indicador small {
+    color: var(--texto-fraco);
+}
+
+.destaque-vermelho .numero {
+    color: var(--perigo);
+}
+
+.destaque-verde .numero {
+    color: var(--ok);
+}
+
+/* ---------- tabelas ---------- */
+.tabela-rolagem {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+}
+
+.tabela th,
+.tabela td {
+    text-align: left;
+    padding: .6rem .65rem;
+    border-bottom: 1px solid var(--borda);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.tabela th {
+    color: var(--texto-fraco);
+    font-weight: 600;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* Coluna de dinheiro. tabular-nums forca todos os algarismos a terem a mesma
+   largura, entao a virgula alinha entre as linhas e da para comparar valores
+   de relance — que e o que o dono faz o dia inteiro. Ver BRANDING.md secao 4. */
+.tabela td.num,
+.tabela th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.tabela tbody tr:hover {
+    background: #fafbfc;
+}
+
+.tabela .forte {
+    font-weight: 600;
+}
+
+.tabela .discreto,
+.discreto {
+    color: var(--texto-fraco);
+    font-size: .88rem;
+}
+
+.tabela .contato {
+    display: table-cell;
+}
+
+.tabela .contato span {
+    margin-right: .5rem;
+}
+
+.acoes {
+    display: flex;
+    gap: .35rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.acoes form {
+    margin: 0;
+}
+
+/* faixa lateral por gravidade do atraso */
+tr.atraso-leve td:first-child {
+    box-shadow: inset 3px 0 0 var(--alerta);
+}
+
+tr.atraso-medio td:first-child {
+    box-shadow: inset 3px 0 0 #ea580c;
+}
+
+tr.atraso-grave td:first-child {
+    box-shadow: inset 3px 0 0 var(--perigo);
+}
+
+tr.pago td:first-child {
+    box-shadow: inset 3px 0 0 var(--ok);
+}
+
+/* ---------- etiquetas ---------- */
+.etiqueta {
+    display: inline-block;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    background: #eef1f4;
+    color: var(--texto-fraco);
+    white-space: nowrap;
+}
+
+.etiqueta.ok {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.etiqueta.inativo {
+    background: #eef1f4;
+    color: var(--texto-fraco);
+}
+
+.etiqueta.atraso-leve {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.etiqueta.atraso-medio {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.etiqueta.atraso-grave {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ---------- botoes ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    padding: .45rem .8rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #eef1f4;
+    color: var(--texto);
+    font-family: inherit;
+}
+
+.btn:hover {
+    text-decoration: none;
+    filter: brightness(.97);
+}
+
+.btn-primario {
+    background: var(--primaria);
+    color: #fff;
+}
+
+.btn-ok {
+    background: var(--ok);
+    color: #fff;
+}
+
+.btn-perigo {
+    background: transparent;
+    color: var(--perigo);
+    border-color: #f3c4c4;
+}
+
+.btn-fantasma {
+    background: transparent;
+    color: var(--texto-fraco);
+    border-color: var(--borda);
+}
+
+.btn-largo {
+    width: 100%;
+    padding: .6rem;
+    font-size: 1rem;
+    margin-top: .5rem;
+}
+
+/* ---------- formularios ---------- */
+.formulario .campo {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin-bottom: .85rem;
+}
+
+label {
+    font-weight: 600;
+    font-size: .85rem;
+}
+
+input[type=text],
+input[type=tel],
+input[type=date],
+input[type=number],
+input[type=search],
+input[type=password],
+select,
+textarea {
+    padding: .5rem .6rem;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    font-size: .95rem;
+    font-family: inherit;
+    background: #fff;
+    color: var(--texto);
+    width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid #99d6cf;
+    outline-offset: 1px;
+    border-color: var(--primaria);
+}
+
+.grade-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+}
+
+.grade-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: .75rem;
+}
+
+.grade-3 .col-2 {
+    grid-column: span 2;
+}
+
+.grupo {
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    padding: .75rem .9rem .25rem;
+    margin: 0 0 .9rem;
+}
+
+.grupo legend {
+    font-weight: 600;
+    font-size: .85rem;
+    padding: 0 .35rem;
+    color: var(--texto-fraco);
+}
+
+.checagem {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 500;
+    margin-bottom: .9rem;
+}
+
+.checagem input {
+    width: auto;
+}
+
+.acoes-formulario {
+    display: flex;
+    gap: .5rem;
+}
+
+.dica {
+    color: var(--texto-fraco);
+    font-size: .8rem;
+}
+
+.erro {
+    color: var(--perigo);
+    font-size: .8rem;
+}
+
+.busca {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: .9rem;
+}
+
+.busca input {
+    flex: 1;
+}
+
+/* ---------- ficha do cliente ---------- */
+.ficha {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .75rem;
+    margin: 0;
+}
+
+.ficha dt {
+    color: var(--texto-fraco);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.ficha dd {
+    margin: .1rem 0 0;
+}
+
+/* ---------- avisos ---------- */
+.aviso {
+    padding: .6rem .8rem;
+    border-radius: 8px;
+    margin: 0 0 1rem;
+    font-size: .9rem;
+}
+
+.aviso-ok {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.aviso-erro {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.vazio {
+    color: var(--texto-fraco);
+    padding: 1rem .25rem;
+    margin: 0;
+}
+
+/* ---------- login ---------- */
+.tela-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+    background: linear-gradient(160deg, #0f766e 0%, #134e4a 100%);
+}
+
+.cartao-login {
+    background: var(--superficie);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .2);
+    padding: 2rem 1.75rem;
+    width: 100%;
+    max-width: 380px;
+}
+
+.cartao-login .subtitulo {
+    color: var(--texto-fraco);
+    margin: .15rem 0 1.25rem;
+}
+
+.cartao-login label {
+    display: block;
+    margin-top: .75rem;
+    margin-bottom: .25rem;
+}
+
+/* ---------- divida: progresso e recebimento ---------- */
+.bloco-alerta {
+    border-left: 4px solid var(--perigo);
+}
+
+.progresso {
+    margin: .25rem 0 1rem;
+}
+
+.progresso-barra {
+    height: 10px;
+    background: #eef1f4;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progresso-barra span {
+    display: block;
+    height: 100%;
+    background: var(--primaria);
+    border-radius: 999px;
+    transition: width .2s ease;
+}
+
+.progresso-barra span.cheia {
+    background: var(--ok);
+}
+
+.progresso-texto {
+    display: inline-block;
+    margin-top: .3rem;
+    color: var(--texto-fraco);
+}
+
+.form-pagamento {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: .75rem;
+    align-items: end;
+    background: #fafbfc;
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    padding: .85rem;
+}
+
+.form-pagamento .campo {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin: 0;
+}
+
+.form-pagamento .campo-largo {
+    grid-column: span 2;
+}
+
+.form-pagamento button {
+    height: 38px;
+}
+
+.destaque-quitada {
+    background: #dcfce7;
+    color: #166534;
+    padding: .6rem .8rem;
+    border-radius: 8px;
+    font-weight: 600;
+    margin: .5rem 0 0;
+}
+
+.ficha-compacta dd {
+    font-size: .95rem;
+}
+
+.verde {
+    color: var(--ok);
+}
+
+.vermelho {
+    color: var(--perigo);
+}
+
+.bloco-linha {
+    display: block;
+}
+
+.etiqueta.parcial {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+/* ---------- telas pequenas ---------- */
+@media (max-width: 640px) {
+    .grade-2,
+    .grade-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .grade-3 .col-2 {
+        grid-column: auto;
+    }
+
+    .barra-interna {
+        gap: .5rem;
+    }
+
+    .links {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .indicador .numero {
+        font-size: 1.25rem;
+    }
+
+    .acoes {
+        justify-content: flex-start;
+    }
+
+    .form-pagamento {
+        grid-template-columns: 1fr;
+    }
+
+    .form-pagamento .campo-largo {
+        grid-column: auto;
+    }
+}

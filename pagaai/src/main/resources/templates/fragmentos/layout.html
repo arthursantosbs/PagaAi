@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!--
+  ============================================================================
+  FRAGMENTOS COMPARTILHADOS
+
+  Toda tela monta a partir daqui. Um fragmento e um pedaco de HTML nomeado que
+  outro arquivo inclui com th:replace. Assim o cabecalho, o menu e o formulario
+  de recebimento existem uma vez so.
+
+  Como incluir, das telas:
+      <head th:replace="~{fragmentos/layout :: cabeca('Painel')}"></head>
+      <nav  th:replace="~{fragmentos/layout :: menu}"></nav>
+      <div  th:replace="~{fragmentos/layout :: formPagamento(${s}, ${hoje}, '/clientes/1')}"></div>
+
+  MEXER AQUI IMPACTA TODAS AS TELAS DE UMA VEZ. E a vantagem e o risco.
+  ============================================================================
+-->
+<head th:fragment="cabeca(titulo)">
+    <meta charset="UTF-8">
+    <!-- viewport-fit=cover: usa a tela inteira em celular com entalhe (notch). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Cor da barra do navegador no Android quando o app e salvo na tela inicial. -->
+    <meta name="theme-color" content="#0f766e">
+    <title th:text="|Paga aí — ${titulo}|">Paga aí</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <!--
+      Favicon: o simbolo da marca (anel = total da divida, arco = quanto foi pago),
+      embutido como data URI. Sem arquivo, sem requisicao extra. Ver BRANDING.md.
+      Os caracteres < > " vem escapados porque isto vive dentro de um atributo HTML.
+    -->
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&gt;&lt;circle cx='16' cy='16' r='13' fill='none' stroke='%230f766e' stroke-opacity='.22' stroke-width='6'/&gt;&lt;circle cx='16' cy='16' r='13' fill='none' stroke='%230f766e' stroke-width='6' stroke-linecap='round' stroke-dasharray='57 82' transform='rotate(-90 16 16)'/&gt;&lt;/svg&gt;">
+</head>
+
+<body>
+
+<!--
+  Assinatura da marca. Reaproveitada no menu e na tela de login.
+  O simbolo usa currentColor, entao ele assume a cor de quem o contem: verde na
+  barra branca, branco sobre o fundo escuro do login. Uma peca, dois contextos.
+-->
+<svg th:fragment="simbolo" class="marca-simbolo" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-opacity=".22" stroke-width="6"/>
+    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="57 82" transform="rotate(-90 16 16)"/>
+</svg>
+
+<!--
+  Menu. O atributo "pagina" vem do controller (@ModelAttribute) e acende o item
+  atual. sec:authorize esconde o link de Usuarios de quem nao e ADMIN — mas quem
+  barra de verdade e o @PreAuthorize no UsuarioController; esconder link nao e
+  seguranca, e cortesia.
+-->
+<nav class="barra" th:fragment="menu">
+    <div class="barra-interna">
+        <a class="marca" th:href="@{/}">
+            <svg th:replace="~{fragmentos/layout :: simbolo}"></svg>
+            <span>Paga<b>aí</b></span>
+        </a>
+        <div class="links">
+            <a th:href="@{/}" th:classappend="${pagina == 'painel'} ? 'ativo'">Painel</a>
+            <a th:href="@{/clientes}" th:classappend="${pagina == 'clientes'} ? 'ativo'">Clientes</a>
+            <a th:href="@{/cobrancas}" th:classappend="${pagina == 'cobrancas'} ? 'ativo'">Dívidas</a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/usuarios}"
+               th:classappend="${pagina == 'usuarios'} ? 'ativo'">Usuários</a>
+        </div>
+        <!-- Sair e POST, nao link: logout por GET pode ser disparado por imagem em site de terceiro. -->
+        <form th:action="@{/logout}" method="post" class="sair">
+            <span class="usuario" sec:authentication="name">usuário</span>
+            <button type="submit" class="btn btn-fantasma">Sair</button>
+        </form>
+    </div>
+</nav>
+
+<div th:fragment="avisos">
+    <p class="aviso aviso-ok" th:if="${sucesso}" th:text="${sucesso}"></p>
+    <p class="aviso aviso-erro" th:if="${erro}" th:text="${erro}"></p>
+</div>
+
+<!-- Quanto da divida ja foi pago. So aparece em divida de valor fechado. -->
+<div th:fragment="progresso(situacao)" class="progresso" th:if="${situacao.valorFechado}">
+    <div class="progresso-barra">
+        <span th:style="'width:' + ${situacao.percentualPago} + '%'"
+              th:classappend="${situacao.quitada} ? 'cheia'"></span>
+    </div>
+    <small class="progresso-texto">
+        <strong th:text="'R$ ' + ${#numbers.formatDecimal(situacao.totalPago(), 1, 'POINT', 2, 'COMMA')}"></strong>
+        <span th:text="' de R$ ' + ${#numbers.formatDecimal(situacao.valorTotal(), 1, 'POINT', 2, 'COMMA')}"></span>
+        <span th:text="'(' + ${situacao.percentualPago} + '%)'"></span>
+    </small>
+</div>
+
+<!-- Registrar recebimento: valor livre, ja vem preenchido com o que fecha o atraso. -->
+<form th:fragment="formPagamento(situacao, hoje, voltarPara)" method="post"
+      th:action="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/pagamentos'}" class="form-pagamento">
+    <input type="hidden" name="voltarPara" th:value="${voltarPara}">
+    <div class="campo">
+        <label th:for="'valor-' + ${situacao.cobrancaId()}">Valor recebido (R$)</label>
+        <input type="number" step="0.01" min="0.01" name="valor" required
+               th:id="'valor-' + ${situacao.cobrancaId()}"
+               th:value="${situacao.valorSugerido}">
+    </div>
+    <div class="campo">
+        <label th:for="'data-' + ${situacao.cobrancaId()}">Quando</label>
+        <input type="date" name="dataPagamento" th:id="'data-' + ${situacao.cobrancaId()}" th:value="${hoje}">
+    </div>
+    <div class="campo campo-largo">
+        <label th:for="'obs-' + ${situacao.cobrancaId()}">Observação</label>
+        <input type="text" name="observacao" maxlength="255" placeholder="opcional"
+               th:id="'obs-' + ${situacao.cobrancaId()}">
+    </div>
+    <button type="submit" class="btn btn-ok">Registrar recebimento</button>
+</form>
+
+<!-- Etiqueta com o estado da divida. -->
+<span th:fragment="etiquetaDivida(situacao)" class="etiqueta" th:classappend="${situacao.severidade}"
+      th:text="${situacao.quitada}
+               ? 'quitada'
+               : (${situacao.emAtraso}
+                  ? ${situacao.diasAtraso} + ' dias de atraso'
+                  : 'em dia')"></span>
+
+</body>
+</html>

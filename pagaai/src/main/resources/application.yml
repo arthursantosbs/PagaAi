@@ -1,0 +1,77 @@
+# =============================================================================
+# Configuracao de DESENVOLVIMENTO (perfil padrao, sem SPRING_PROFILES_ACTIVE).
+# Producao usa application-prod.yml, que sobrescreve o que precisa.
+#
+# Regra que seguimos aqui: so aparece nesta lista o que MUDA o comportamento
+# padrao do Spring Boot. Repetir valor padrao vira ruido e engana quem le.
+# =============================================================================
+spring:
+  application:
+    name: paga-ai
+
+  datasource:
+    # H2 gravando em arquivo: zero instalacao e os dados sobrevivem ao restart.
+    # O arquivo nasce em ./data/pagaai.mv.db, RELATIVO A PASTA DE ONDE VOCE RODA.
+    # Por isso o run.cmd faz "cd" para a pasta do projeto antes de subir.
+    url: jdbc:h2:file:./data/pagaai
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      # Console SQL em /h2-console. So o perfil de dev liga isso, e mesmo assim
+      # o SecurityConfig exige papel ADMIN. Em producao fica desligado.
+      enabled: true
+
+  # O schema vem dos arquivos SQL em db/migration. O Flyway roda antes do
+  # Hibernate, cria as tabelas e grava o que ja aplicou na tabela
+  # flyway_schema_history. Rodar de novo nao repete nada.
+  flyway:
+    enabled: true
+    # Em dev, se o banco ficar inconsistente, apagar a pasta data/ recomeca do zero.
+    baseline-on-migrate: true
+
+  jpa:
+    hibernate:
+      # "validate": o Hibernate NAO altera mais nada. Ele so confere se as
+      # entidades batem com o schema criado pelo Flyway e recusa subir se
+      # divergirem. Erro na hora certa, em vez de coluna fantasma meses depois.
+      ddl-auto: validate
+    # Desligado de proposito. Com open-in-view ligado, a sessao do banco fica
+    # aberta ate a tela terminar de renderizar e qualquer getter lazy dispara
+    # consulta escondida. Desligado, o erro aparece na hora (Lazy...Exception)
+    # e somos obrigados a buscar os dados explicitamente — ver
+    # CobrancaService#buscarComCliente.
+    open-in-view: false
+
+  thymeleaf:
+    # Padrao e "true". Em dev, false permite editar .html e ver o resultado
+    # sem recompilar. Producao volta para true.
+    cache: false
+
+  mvc:
+    format:
+      # Campos <input type="date"> enviam yyyy-MM-dd. Sem isto, o binding tenta
+      # interpretar a data no formato do locale (dd/MM/yyyy) e falha.
+      date: iso
+
+  web:
+    # Fixa o idioma: mensagens de validacao e formatacao em pt-BR, independente
+    # do idioma do navegador de quem abrir.
+    locale: pt_BR
+    locale-resolver: fixed
+
+server:
+  port: 8080
+
+# -----------------------------------------------------------------------------
+# Configuracao propria do Paga ai. Lida por config/PagaAiProperties.java.
+# -----------------------------------------------------------------------------
+pagaai:
+  admin:
+    # Usuario criado no primeiro start (config/DataSeeder.java).
+    # Esta senha SO vale em desenvolvimento: no perfil prod a aplicacao se recusa
+    # a subir com ela (config/VerificacaoDeSeguranca.java).
+    login: HERA123
+    senha: "12345678"
+    nome: Administrador

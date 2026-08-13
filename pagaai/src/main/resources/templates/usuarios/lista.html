@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Usuários')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo estreito">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Usuários</h2>
+        </header>
+
+        <table class="tabela">
+            <thead>
+            <tr>
+                <th>Login</th>
+                <th>Nome</th>
+                <th>Papel</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${usuarios}">
+                <td th:text="${u.login}"></td>
+                <td th:text="${u.nome}"></td>
+                <td th:text="${u.papel.descricao}"></td>
+                <td>
+                    <span class="etiqueta" th:classappend="${u.ativo} ? 'ok' : 'inativo'"
+                          th:text="${u.ativo} ? 'ativo' : 'inativo'"></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Adicionar sócio</h2>
+        </header>
+        <form method="post" th:action="@{/usuarios}" class="formulario">
+            <div class="grade-2">
+                <div class="campo">
+                    <label for="login">Login</label>
+                    <input id="login" name="login" type="text" required>
+                </div>
+                <div class="campo">
+                    <label for="nome">Nome</label>
+                    <input id="nome" name="nome" type="text" required>
+                </div>
+            </div>
+            <div class="grade-2">
+                <div class="campo">
+                    <label for="senha">Senha (min. 8 caracteres)</label>
+                    <input id="senha" name="senha" type="password" minlength="8" required>
+                </div>
+                <div class="campo">
+                    <label for="papel">Papel</label>
+                    <select id="papel" name="papel">
+                        <option th:each="p : ${papeis}" th:value="${p}" th:text="${p.descricao}"></option>
+                    </select>
+                </div>
+            </div>
+            <div class="acoes-formulario">
+                <button type="submit" class="btn btn-primario">Criar usuário</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Trocar senha</h2>
+            <p class="discreto">Troque a senha padrao do HERA123 assim que possível.</p>
+        </header>
+        <form method="post" th:action="@{/usuarios/senha}" class="formulario">
+            <div class="grade-2">
+                <div class="campo">
+                    <label for="loginSenha">Login</label>
+                    <input id="loginSenha" name="login" type="text" required>
+                </div>
+                <div class="campo">
+                    <label for="novaSenha">Nova senha (min. 8 caracteres)</label>
+                    <input id="novaSenha" name="novaSenha" type="password" minlength="8" required>
+                </div>
+            </div>
+            <div class="acoes-formulario">
+                <button type="submit" class="btn btn-primario">Atualizar senha</button>
+            </div>
+        </form>
+    </section>
+
+</main>
+
+</body>
+</html>

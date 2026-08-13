@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Clientes')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Clientes</h2>
+            <a class="btn btn-primario" th:href="@{/clientes/novo}">Novo cliente</a>
+        </header>
+
+        <form method="get" th:action="@{/clientes}" class="busca">
+            <input type="search" name="q" th:value="${q}" placeholder="Buscar por nome, telefone ou instagram">
+            <button type="submit" class="btn btn-fantasma">Buscar</button>
+        </form>
+
+        <p class="vazio" th:if="${#lists.isEmpty(clientes)}">Nenhum cliente cadastrado ainda.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(clientes)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Instagram</th>
+                    <th>Endereço</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${clientes}">
+                    <td>
+                        <a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}">Nome</a>
+                        <span class="etiqueta inativo" th:unless="${c.ativo}">inativo</span>
+                    </td>
+                    <td th:text="${c.telefone}"></td>
+                    <td>
+                        <a th:if="${c.instagramHandle}" target="_blank" rel="noopener"
+                           th:href="'https://instagram.com/' + ${c.instagramHandle}"
+                           th:text="'@' + ${c.instagramHandle}"></a>
+                    </td>
+                    <td class="discreto" th:text="${c.enderecoResumido}"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/clientes/' + ${c.id} + '/editar'}">Editar</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

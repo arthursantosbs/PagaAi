@@ -1,0 +1,53 @@
+# Blueprint do Render. Requer que a raiz do repositorio seja esta pasta (pagaai).
+# Se o repositorio tiver a pasta PagaAi como raiz, configure
+# "Root Directory = pagaai" no painel do Render.
+#
+# ATENCAO: confira o schema atual em https://render.com/docs/blueprint-spec
+# antes de aplicar — o formato muda de tempos em tempos. Se o blueprint reclamar,
+# o caminho manual funciona igual: New > Web Service > Docker, e depois preencher
+# as mesmas variaveis de ambiente na mao.
+
+databases:
+  - name: pagaai-db
+    databaseName: pagaai
+    user: pagaai
+    plan: free
+
+services:
+  - type: web
+    name: paga-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        fromDatabase:
+          name: pagaai-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: pagaai-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: pagaai-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: pagaai-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: pagaai-db
+          property: password
+      - key: ADMIN_LOGIN
+        value: HERA123
+      # sync: false = o Render pergunta o valor na hora de aplicar o blueprint
+      # e guarda so no painel. A senha nao entra no repositorio.
+      - key: ADMIN_SENHA
+        sync: false

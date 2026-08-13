@@ -1,0 +1,19 @@
+# Build
+target/
+*.class
+
+# Banco H2 local (gerado na pasta de onde o app roda)
+data/
+*.mv.db
+*.trace.db
+
+# Segredos de producao — nunca versionar
+.env
+
+# Backups gerados no servidor
+backups/
+
+# IDE
+.idea/
+*.iml
+.vscode/

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Dívidas')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo">
+
+    <div th:replace="~{fragmentos/layout :: avisos}"></div>
+
+    <section class="bloco bloco-alerta">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Dívidas atrasadas</h2>
+                <p class="discreto">Tem valor vencido e não pago.</p>
+            </div>
+            <a class="btn btn-primario" th:href="@{/cobrancas/nova}">Nova dívida</a>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(atrasadas)}">Nenhuma dívida atrasada.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(atrasadas)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th class="num">Atrasado</th>
+                    <th class="num">Falta pagar</th>
+                    <th class="num">Atraso</th>
+                    <th>Desde</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${atrasadas}" th:classappend="${s.severidade}">
+                    <td><a th:href="@{'/clientes/' + ${s.clienteId()}}" th:text="${s.clienteNome()}"></a></td>
+                    <td><a th:href="@{'/cobrancas/' + ${s.cobrancaId()}}" th:text="${s.descricao()}"></a></td>
+                    <td class="num forte vermelho"
+                        th:text="'R$ ' + ${#numbers.formatDecimal(s.valorEmAtraso(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(s.saldoDevedor(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num">
+                        <span class="etiqueta" th:classappend="${s.severidade}"
+                              th:text="${s.diasAtraso()} + ' dias'"></span>
+                    </td>
+                    <td th:text="${#temporals.format(s.vencimentoMaisAntigoEmAberto(), 'dd/MM/yyyy')}"></td>
+                    <td class="acoes">
+                        <a class="btn btn-ok" th:href="@{'/cobrancas/' + ${s.cobrancaId()}}">Receber</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Todas as dívidas em aberto</h2>
+                <p class="discreto">Tudo que ainda tem saldo a receber.</p>
+            </div>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(abertas)}">Nenhuma dívida em aberto. Tudo recebido.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(abertas)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th>Combinado</th>
+                    <th class="num">Total</th>
+                    <th class="num">Pago</th>
+                    <th class="num">Falta</th>
+                    <th>Situação</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${abertas}" th:classappend="${s.severidade}">
+                    <td><a th:href="@{'/clientes/' + ${s.clienteId()}}" th:text="${s.clienteNome()}"></a></td>
+                    <td><a th:href="@{'/cobrancas/' + ${s.cobrancaId()}}" th:text="${s.descricao()}"></a></td>
+                    <td class="discreto"
+                        th:text="${s.parcelasQuitadas()} + '/' + ${s.parcelasTotais()} + ' parcelas'"></td>
+                    <td class="num" th:text="${s.valorFechado()}
+                        ? 'R$ ' + ${#numbers.formatDecimal(s.valorTotal(), 1, 'POINT', 2, 'COMMA')}
+                        : 'recorrente'"></td>
+                    <td class="num verde" th:text="'R$ ' + ${#numbers.formatDecimal(s.totalPago(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num forte" th:text="'R$ ' + ${#numbers.formatDecimal(s.saldoDevedor(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td><span th:replace="~{fragmentos/layout :: etiquetaDivida(${s})}"></span></td>
+                    <td class="acoes">
+                        <a class="btn btn-ok" th:href="@{'/cobrancas/' + ${s.cobrancaId()}}">Receber</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2>Agenda dos próximos 30 dias</h2>
+        </header>
+
+        <p class="vazio" th:if="${#lists.isEmpty(agenda)}">Nada a vencer no período.</p>
+
+        <div class="tabela-rolagem" th:unless="${#lists.isEmpty(agenda)}">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Vencimento</th>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th class="num">Valor</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="i : ${agenda}">
+                    <td th:text="${#temporals.format(i.parcela().vencimento(), 'dd/MM/yyyy')}"></td>
+                    <td><a th:href="@{'/clientes/' + ${i.cobranca().clienteId()}}"
+                           th:text="${i.cobranca().clienteNome()}"></a></td>
+                    <td><a th:href="@{'/cobrancas/' + ${i.cobranca().cobrancaId()}}"
+                           th:text="${i.cobranca().descricao()}"></a></td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(i.parcela().saldo(), 1, 'POINT', 2, 'COMMA')}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+# HTTPS automatico via Let's Encrypt. O dominio vem do .env (DOMINIO).
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy app:8080
+}

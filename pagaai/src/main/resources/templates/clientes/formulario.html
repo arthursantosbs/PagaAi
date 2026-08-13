@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/layout :: cabeca('Cliente')}"></head>
+<body>
+
+<nav th:replace="~{fragmentos/layout :: menu}"></nav>
+
+<main class="conteudo estreito">
+
+    <section class="bloco">
+        <header class="bloco-cabeca">
+            <h2 th:text="${form.id == null} ? 'Novo cliente' : 'Editar cliente'">Cliente</h2>
+        </header>
+
+        <form method="post" th:action="@{/clientes}" th:object="${form}" class="formulario">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="campo">
+                <label for="nome">Nome *</label>
+                <input id="nome" type="text" th:field="*{nome}" required>
+                <small class="erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></small>
+            </div>
+
+            <div class="grade-2">
+                <div class="campo">
+                    <label for="telefone">Telefone / WhatsApp</label>
+                    <input id="telefone" type="tel" th:field="*{telefone}" placeholder="(83) 90000-0000">
+                </div>
+                <div class="campo">
+                    <label for="instagram">Instagram</label>
+                    <input id="instagram" type="text" th:field="*{instagram}" placeholder="@usuario">
+                </div>
+            </div>
+
+            <fieldset class="grupo">
+                <legend>Endereço</legend>
+                <div class="grade-3">
+                    <div class="campo col-2">
+                        <label for="logradouro">Rua / Avenida</label>
+                        <input id="logradouro" type="text" th:field="*{logradouro}">
+                    </div>
+                    <div class="campo">
+                        <label for="numero">Número</label>
+                        <input id="numero" type="text" th:field="*{numero}">
+                    </div>
+                </div>
+                <div class="grade-3">
+                    <div class="campo">
+                        <label for="complemento">Complemento</label>
+                        <input id="complemento" type="text" th:field="*{complemento}">
+                    </div>
+                    <div class="campo">
+                        <label for="bairro">Bairro</label>
+                        <input id="bairro" type="text" th:field="*{bairro}">
+                    </div>
+                    <div class="campo">
+                        <label for="cep">CEP</label>
+                        <input id="cep" type="text" th:field="*{cep}" placeholder="00000-000">
+                    </div>
+                </div>
+                <div class="grade-3">
+                    <div class="campo col-2">
+                        <label for="cidade">Cidade</label>
+                        <input id="cidade" type="text" th:field="*{cidade}">
+                    </div>
+                    <div class="campo">
+                        <label for="uf">UF</label>
+                        <input id="uf" type="text" th:field="*{uf}" maxlength="2" placeholder="PB">
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="campo">
+                <label for="observacoes">Observações</label>
+                <textarea id="observacoes" rows="3" th:field="*{observacoes}"></textarea>
+            </div>
+
+            <label class="checagem">
+                <input type="checkbox" th:field="*{ativo}"> Cliente ativo
+            </label>
+
+            <div class="acoes-formulario">
+                <button type="submit" class="btn btn-primario">Salvar</button>
+                <a class="btn btn-fantasma" th:href="@{/clientes}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+
+</main>
+
+</body>
+</html>
