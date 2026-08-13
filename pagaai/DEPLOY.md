@@ -98,12 +98,89 @@ ls -lh backups/                # ver os arquivos
 
 ---
 
-## Caminho 2 — Render (sem mexer em servidor)
+## Caminho 2 — Render + Neon (custo zero, sem servidor para administrar)
 
-Deploy direto do GitHub, sem terminal. O plano gratuito **dorme após inatividade**
-(a primeira visita depois de um tempo parado demora cerca de um minuto) e o
-PostgreSQL gratuito tem prazo de validade — para uso diário de verdade, vira plano
-pago. Confira os preços e limites atuais no site deles.
+Deploy direto do GitHub, sem terminal, sem cartão.
+
+> ⚠️ **Não use o PostgreSQL gratuito do Render.** Ele **expira 30 dias** depois de
+> criado e, após 14 dias de carência, é **apagado com todos os dados**. Num sistema
+> que registra quem deve dinheiro, isso é perder o controle das cobranças sozinho.
+
+A divisão que funciona de graça e não perde dado:
+
+| Peça | Onde | Por quê |
+|---|---|---|
+| Banco de dados | **Neon** (plano gratuito) | permanente, não expira, 0,5 GB — cabem centenas de milhares de pagamentos |
+| Aplicação | **Render** (plano gratuito) | dorme após 15 min sem uso e acorda em ~1 min |
+
+O Neon também suspende por inatividade, mas volta em milissegundos e **nada é
+perdido**.
+
+### 1. Criar o banco no Neon
+
+1. Em <https://neon.tech>, crie um projeto. Escolha a região mais perto
+   (`sa-east-1`, São Paulo, se existir).
+2. Copie a **connection string**. Ela vem no formato `postgresql://...`, mas o Java
+   precisa dela em **JDBC**. Converta assim:
+
+   ```
+   Neon te dá:  postgresql://usuario:senha@ep-xxx.sa-east-1.aws.neon.tech/neondb?sslmode=require
+   Você usa:    jdbc:postgresql://ep-xxx.sa-east-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+   Ou seja: prefixe com `jdbc:` e **tire usuário e senha da URL** — eles vão em
+   variáveis separadas. O `sslmode=require` é obrigatório, o Neon recusa conexão
+   sem TLS.
+
+### 2. Apontar o Render para o Neon
+
+No serviço `paga-ai` → **Environment**, defina:
+
+| Variável | Valor |
+|---|---|
+| `DB_URL` | a URL JDBC do passo anterior |
+| `DB_USER` | o usuário do Neon |
+| `DB_PASSWORD` | a senha do Neon |
+| `ADMIN_SENHA` | a senha com que **você** vai entrar |
+
+O `DB_URL` tem precedência sobre `DB_HOST`/`DB_PORT`/`DB_NAME` no
+`application-prod.yml`, então basta defini-lo. Se já existir um banco do Render
+sobrando, pode deixá-lo expirar — deixa de ser usado.
+
+Salve e faça **Manual Deploy → Deploy latest commit**. Na subida, o Flyway cria
+as tabelas no Neon.
+
+### O plano gratuito do Render, em números
+
+- web service dorme após **15 minutos** sem acesso, acorda em ~1 min;
+- **750 horas** de instância por mês, por workspace (com um serviço, sobra);
+- se o "dorme" incomodar, só o web service vira pago (**Starter**), e o banco
+  continua de graça no Neon.
+
+Confira os limites atuais em <https://render.com/docs/free>.
+
+### 3. Garantir que você nunca perde os dados
+
+Banco que não expira resolve metade. A outra metade é ter cópia **fora dele**.
+
+Três camadas, da mais automática para a mais sua:
+
+1. **O Neon guarda histórico** e permite voltar o banco a um ponto no tempo —
+   protege contra apagar algo por engano. Confira a retenção do plano gratuito no
+   painel deles.
+2. **Backup na sua máquina.** Rode de tempos em tempos (semanalmente já resolve):
+   ```bash
+   pagaai\backup.cmd "postgresql://usuario:senha@ep-xxx.neon.tech/neondb?sslmode=require"
+   ```
+   Gera um `.sql` completo em `backups\`. Com ele você reconstrói o sistema
+   inteiro em qualquer servidor.
+3. **Cópia fora do computador.** Jogue esse arquivo no Google Drive, num HD
+   externo, ou mande para o seu próprio e-mail. Se o HD morrer, o backup morre
+   junto — a menos que exista em outro lugar.
+
+**Teste a restauração uma vez.** Backup nunca restaurado não conta como backup:
+crie um banco vazio de teste no Neon e rode `psql "URL_DO_TESTE" < backups\arquivo.sql`.
+Se o sistema subir contra ele, seu backup presta.
 
 1. Suba o código para o GitHub. O `.gitignore` já mantém `.env`, banco e
    `target/` fora.

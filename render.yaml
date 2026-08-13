@@ -10,11 +10,15 @@
 # manual funciona igual: New > Web Service > Docker, com Root Directory = pagaai,
 # e depois preencher as mesmas variaveis de ambiente na mao.
 
-databases:
-  - name: pagaai-db
-    databaseName: pagaai
-    user: pagaai
-    plan: free
+# NAO criamos banco aqui de proposito.
+#
+# O Postgres gratuito do Render EXPIRA 30 dias depois de criado e depois e
+# APAGADO com os dados dentro. Para um sistema que registra quem deve dinheiro,
+# isso e inaceitavel.
+#
+# Em vez disso, use um Postgres gerenciado que nao expira (Neon tem plano
+# gratuito permanente) e informe a conexao em DB_URL, DB_USER e DB_PASSWORD
+# no painel do Render. Passo a passo no DEPLOY.md.
 
 services:
   - type: web
@@ -28,26 +32,17 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: DB_HOST
-        fromDatabase:
-          name: pagaai-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: pagaai-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: pagaai-db
-          property: database
+      # sync: false = o Render pergunta na hora de aplicar e guarda so no painel.
+      # Nada disso entra no repositorio.
+      #
+      # DB_URL vem do Neon, no formato JDBC e COM sslmode=require:
+      #   jdbc:postgresql://ep-xxx.sa-east-1.aws.neon.tech/pagaai?sslmode=require
+      - key: DB_URL
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: pagaai-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: pagaai-db
-          property: password
+        sync: false
       - key: ADMIN_LOGIN
         value: HERA123
       # sync: false = o Render pergunta o valor na hora de aplicar o blueprint
