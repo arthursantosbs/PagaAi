@@ -105,17 +105,26 @@ Deploy direto do GitHub, sem terminal. O plano gratuito **dorme após inatividad
 PostgreSQL gratuito tem prazo de validade — para uso diário de verdade, vira plano
 pago. Confira os preços e limites atuais no site deles.
 
-1. Suba o código para um repositório **privado** no GitHub. O `.gitignore` já
-   mantém `.env`, banco e `target/` fora.
-2. No Render: **New → Blueprint**, aponte para o repositório. Ele lê o
-   `render.yaml`.
-   - Se a raiz do repositório for `PagaAi`, configure **Root Directory =
-     `pagaai`**.
-   - Se o blueprint reclamar do formato, use **New → Web Service → Docker**, que dá
-     no mesmo: basta preencher as variáveis de ambiente na mão.
+1. Suba o código para o GitHub. O `.gitignore` já mantém `.env`, banco e
+   `target/` fora.
+2. No Render: **New → Blueprint** e escolha o repositório.
+   - O `render.yaml` fica na **raiz** do repositório — é onde o Render procura.
+     Deixe o campo *Blueprint Path* vazio.
+   - Dentro dele, `dockerContext: ./pagaai` é o que faz o build achar o código.
+   - Preencha só o **Blueprint Name** (qualquer nome) e confirme a branch `main`.
 3. Quando ele pedir `ADMIN_SENHA`, digite uma senha sua. É a única que não fica no
-   repositório.
+   repositório, e é com ela que você vai entrar.
 4. O health check já está configurado em `/actuator/health`.
+
+**Se o Blueprint reclamar do formato** (o schema do Render muda de tempos em
+tempos), use o caminho manual, que dá no mesmo:
+
+- **New → Postgres**, crie um banco e anote host, porta, base, usuário e senha.
+- **New → Web Service → Docker**, aponte para o repositório e configure
+  **Root Directory = `pagaai`**.
+- Em *Environment*, preencha à mão: `SPRING_PROFILES_ACTIVE=prod`, `DB_HOST`,
+  `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `ADMIN_SENHA`.
+- Em *Health Check Path*, coloque `/actuator/health`.
 
 O Render entrega HTTPS pronto no domínio `.onrender.com`, então `COOKIE_SECURE`
 pode ficar no padrão (`true`).

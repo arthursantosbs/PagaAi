@@ -1,11 +1,14 @@
-# Blueprint do Render. Requer que a raiz do repositorio seja esta pasta (pagaai).
-# Se o repositorio tiver a pasta PagaAi como raiz, configure
-# "Root Directory = pagaai" no painel do Render.
+# Blueprint do Render.
 #
-# ATENCAO: confira o schema atual em https://render.com/docs/blueprint-spec
-# antes de aplicar — o formato muda de tempos em tempos. Se o blueprint reclamar,
-# o caminho manual funciona igual: New > Web Service > Docker, e depois preencher
-# as mesmas variaveis de ambiente na mao.
+# Este arquivo precisa ficar na RAIZ do repositorio: e onde o Render procura por
+# padrao. Como o codigo do app vive em pagaai/, os caminhos abaixo apontam para la.
+# dockerfilePath e dockerContext sao sempre relativos a raiz do repositorio,
+# nunca a posicao deste arquivo.
+#
+# Se o Render reclamar do formato, confira o schema atual em
+# https://render.com/docs/blueprint-spec — ele muda de tempos em tempos. O caminho
+# manual funciona igual: New > Web Service > Docker, com Root Directory = pagaai,
+# e depois preencher as mesmas variaveis de ambiente na mao.
 
 databases:
   - name: pagaai-db
@@ -17,8 +20,8 @@ services:
   - type: web
     name: paga-ai
     runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    dockerfilePath: ./pagaai/Dockerfile
+    dockerContext: ./pagaai
     plan: free
     region: oregon
     healthCheckPath: /actuator/health
