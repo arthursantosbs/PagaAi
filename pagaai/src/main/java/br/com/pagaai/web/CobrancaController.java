@@ -90,6 +90,11 @@ public class CobrancaController {
         model.addAttribute("aguardando", carteira.situacoes().stream()
                 .filter(SituacaoCobranca::isSemSaldoHoje)
                 .toList());
+        // Pausadas ficam de fora de todas as consultas acima. Listadas aqui para
+        // que nenhuma cobranca cadastrada seja invisivel nesta tela.
+        model.addAttribute("pausadas", carteira.todas().stream()
+                .filter(s -> !s.ativa())
+                .toList());
         model.addAttribute("devedores", devedores);
         model.addAttribute("agenda", carteira.agenda(30));
         model.addAttribute("hoje", LocalDate.now());

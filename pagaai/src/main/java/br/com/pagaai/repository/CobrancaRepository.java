@@ -21,6 +21,10 @@ public interface CobrancaRepository extends JpaRepository<Cobranca, Long> {
     @Query("select c from Cobranca c join fetch c.cliente where c.ativa = true")
     List<Cobranca> findAtivasComCliente();
 
+    /** Inclui as pausadas. A tela de dividas precisa mostrar tudo que existe. */
+    @Query("select c from Cobranca c join fetch c.cliente")
+    List<Cobranca> findTodasComCliente();
+
     /**
      * O cliente vem junto de proposito: o calculo da divida le o nome e o contato,
      * e sem o fetch isso estoura LazyInitializationException fora da transacao
