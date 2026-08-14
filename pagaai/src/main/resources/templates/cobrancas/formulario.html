@@ -90,9 +90,18 @@
                 </div>
             </div>
 
-            <label class="checagem">
-                <input type="checkbox" th:field="*{ativa}"> Cobrança ativa
-            </label>
+            <!--
+              NAO existe caixa "Cobranca ativa" aqui, de proposito.
+
+              Ela existia e era uma armadilha: vinha marcada, ficava dentro do
+              <label>, entao clicar no texto desmarcava sem querer. Uma divida
+              salva desmarcada some do Painel e da lista, mas continua abrindo
+              pela URL — o usuario ve "Divida salva" e depois nao encontra mais
+              nada, e conclui que o sistema nao salvou.
+
+              Divida nova nasce ativa. Pausar e uma acao posterior, no botao
+              "Pausar cobranca" da tela de detalhe, que diz o que faz.
+            -->
 
             <div class="acoes-formulario">
                 <button type="submit" class="btn btn-primario">Salvar</button>

@@ -62,7 +62,12 @@ public class CobrancaService {
         cobranca.setDiaDaSemana(form.getDiaDaSemana());
         cobranca.setDataInicio(form.getDataInicio());
         cobranca.setDataFim(form.getDataFim());
-        cobranca.setAtiva(form.isAtiva());
+        // "ativa" NAO vem do formulario. Divida nova nasce ativa; editar uma
+        // existente preserva o estado atual. Quem pausa e retoma e o botao da
+        // tela de detalhe, que e explicito sobre o efeito.
+        if (form.getId() == null) {
+            cobranca.setAtiva(true);
+        }
         return cobrancaRepository.save(cobranca);
     }
 

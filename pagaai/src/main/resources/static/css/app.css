@@ -677,6 +677,27 @@ textarea:focus {
     margin: .5rem 0 0;
 }
 
+/* Aviso de cobranca pausada: ela some das listas, entao a tela precisa
+   dizer isso na cara, com o botao de desfazer do lado. */
+.destaque-pausada {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    background: #fef3c7;
+    color: #92400e;
+    padding: .75rem .9rem;
+    border-radius: 8px;
+    margin: .5rem 0 0;
+}
+
+.destaque-pausada span {
+    display: block;
+    font-weight: 400;
+    font-size: .92rem;
+}
+
 .ficha-compacta dd {
     font-size: .95rem;
 }

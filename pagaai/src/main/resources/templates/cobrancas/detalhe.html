@@ -60,6 +60,22 @@
         <p class="destaque-quitada" th:if="${situacao.quitada()}">
             Dívida quitada. Não gera mais cobrança.
         </p>
+
+        <!--
+          Cobrança pausada some do Painel e da lista. Sem este aviso, ela vira
+          "o sistema perdeu meu cadastro" — o registro está aqui, mas o usuário
+          não tem como saber por que não o encontra em mais lugar nenhum.
+        -->
+        <div class="destaque-pausada" th:unless="${cobranca.ativa}">
+            <div>
+                <strong>Esta cobrança está pausada.</strong>
+                <span>Ela não aparece no Painel nem na lista de dívidas, e não gera novos vencimentos.</span>
+            </div>
+            <form method="post" th:action="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/alternar'}">
+                <input type="hidden" name="voltarPara" th:value="'/cobrancas/' + ${situacao.cobrancaId()}">
+                <button type="submit" class="btn btn-primario">Retomar cobrança</button>
+            </form>
+        </div>
     </section>
 
     <section class="bloco" th:unless="${situacao.quitada()}">
