@@ -80,6 +80,7 @@ public class CalculadoraDeDivida {
                 cliente.getInstagram(),
                 cobranca.getDescricao(),
                 cobranca.isValorFechado(),
+                cobranca.isAtiva(),
                 cobranca.getValorTotal(),
                 pago,
                 escala(saldo),

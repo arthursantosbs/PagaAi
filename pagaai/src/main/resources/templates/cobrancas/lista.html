@@ -99,6 +99,86 @@
         </div>
     </section>
 
+    <!--
+      Cobranças vivas sem saldo hoje (recorrente antes do primeiro vencimento).
+      Bloco obrigatório: sem ele elas não aparecem em tela nenhuma.
+    -->
+    <section class="bloco" th:unless="${#lists.isEmpty(aguardando)}">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Aguardando o primeiro vencimento</h2>
+                <p class="discreto">Cadastradas, mas ainda sem valor a receber.</p>
+            </div>
+        </header>
+
+        <div class="tabela-rolagem">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th>Combinado</th>
+                    <th>Próximo vencimento</th>
+                    <th class="num">Valor</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${aguardando}">
+                    <td><a th:href="@{'/clientes/' + ${s.clienteId()}}" th:text="${s.clienteNome()}"></a></td>
+                    <td><a th:href="@{'/cobrancas/' + ${s.cobrancaId()}}" th:text="${s.descricao()}"></a></td>
+                    <td class="discreto" th:text="${s.valorFechado()}
+                        ? 'R$ ' + ${#numbers.formatDecimal(s.valorTotal(), 1, 'POINT', 2, 'COMMA')} + ' no total'
+                        : 'recorrente'"></td>
+                    <td th:text="${s.proximoVencimento() != null}
+                        ? ${#temporals.format(s.proximoVencimento(), 'dd/MM/yyyy')} : '-'"></td>
+                    <td class="num" th:text="${s.proximoValor() != null}
+                        ? 'R$ ' + ${#numbers.formatDecimal(s.proximoValor(), 1, 'POINT', 2, 'COMMA')} : '-'"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/cobrancas/' + ${s.cobrancaId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Pausadas nao entram em nenhuma das listas acima; sem este bloco, sumiriam. -->
+    <section class="bloco" th:unless="${#lists.isEmpty(pausadas)}">
+        <header class="bloco-cabeca">
+            <div>
+                <h2>Cobranças pausadas</h2>
+                <p class="discreto">Não geram vencimento enquanto estiverem pausadas.</p>
+            </div>
+        </header>
+
+        <div class="tabela-rolagem">
+            <table class="tabela">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Dívida</th>
+                    <th class="num">Falta pagar</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${pausadas}">
+                    <td><a th:href="@{'/clientes/' + ${s.clienteId()}}" th:text="${s.clienteNome()}"></a></td>
+                    <td>
+                        <a th:href="@{'/cobrancas/' + ${s.cobrancaId()}}" th:text="${s.descricao()}"></a>
+                        <span class="etiqueta inativo">pausada</span>
+                    </td>
+                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(s.saldoDevedor(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="acoes">
+                        <a class="btn btn-fantasma" th:href="@{'/cobrancas/' + ${s.cobrancaId()}}">Abrir</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="bloco">
         <header class="bloco-cabeca">
             <h2>Agenda dos próximos 30 dias</h2>

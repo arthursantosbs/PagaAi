@@ -53,6 +53,22 @@ public class CarteiraService {
                 .toList();
     }
 
+    /**
+     * Situacao de TODAS as cobrancas, pausadas inclusive.
+     *
+     * <p>Existe para a tela conseguir provar que nada sumiu: cobranca pausada
+     * nao aparece em {@link #situacoes()} e, sem isto, ficaria invisivel — o que
+     * o usuario le como "o cadastro nao salvou".
+     */
+    public List<SituacaoCobranca> todas() {
+        LocalDate hoje = LocalDate.now();
+        Map<Long, BigDecimal> pagos = pagosPorCobranca(pagamentoRepository.totaisPagos());
+
+        return cobrancaRepository.findTodasComCliente().stream()
+                .map(c -> calculadora.calcular(c, c.getCliente(), pagos.get(c.getId()), hoje))
+                .toList();
+    }
+
     /** So o que ainda tem saldo a receber. */
     public List<SituacaoCobranca> emAberto() {
         return situacoes().stream()

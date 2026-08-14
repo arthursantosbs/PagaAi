@@ -88,6 +88,12 @@ public class ClienteController {
         model.addAttribute("dividas", dividas);
         model.addAttribute("abertas", dividas.stream().filter(SituacaoCobranca::isDevedor).toList());
         model.addAttribute("quitadas", dividas.stream().filter(SituacaoCobranca::quitada).toList());
+        // Terceiro grupo, obrigatorio: o que nao e devedor nem quitado — recorrente
+        // antes do primeiro vencimento, ou cobranca pausada. Sem ele, a divida some
+        // da tela e o usuario acha que o cadastro nao salvou.
+        model.addAttribute("outras", dividas.stream()
+                .filter(s -> !s.isDevedor() && !s.quitada())
+                .toList());
         model.addAttribute("totalDevido", soma(dividas, SituacaoCobranca::saldoDevedor));
         model.addAttribute("totalEmAtraso", soma(dividas, SituacaoCobranca::valorEmAtraso));
         model.addAttribute("totalPago", soma(dividas, SituacaoCobranca::totalPago));
