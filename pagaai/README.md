@@ -13,6 +13,8 @@ Java 17 + Spring Boot 3.3, com API REST pronta para o app mobile no futuro.
 | Arquivo | Para quê |
 |---|---|
 | **[ARQUITETURA.md](ARQUITETURA.md)** | **comece por aqui para manutenção** — mapa das pastas, matriz de impacto, receitas e armadilhas |
+| **[PROXIMA-VERSAO.md](PROXIMA-VERSAO.md)** | **para codar a v2** — melhorias com passo a passo, na ordem sugerida |
+| [MANUAL.md](MANUAL.md) | manual de uso, para o dono e o sócio |
 | [BRANDING.md](BRANDING.md) | cores, logo, tipografia, voz e modelos de mensagem de cobrança |
 | [ROADMAP.md](ROADMAP.md) | melhorias das próximas versões, priorizadas |
 | [DEPLOY.md](DEPLOY.md) | como colocar no ar |
