@@ -6,6 +6,7 @@ import br.com.pagaai.domain.Periodicidade;
 import br.com.pagaai.domain.TipoCobranca;
 import br.com.pagaai.dto.CobrancaForm;
 import br.com.pagaai.dto.PendenciaCliente;
+import br.com.pagaai.dto.SituacaoCobranca;
 import br.com.pagaai.service.CarteiraService;
 import br.com.pagaai.service.ClienteService;
 import br.com.pagaai.service.CobrancaService;
@@ -84,6 +85,11 @@ public class CobrancaController {
         List<PendenciaCliente> devedores = carteira.devedores();
         model.addAttribute("atrasadas", carteira.emAberto().stream().filter(s -> s.isEmAtraso()).toList());
         model.addAttribute("abertas", carteira.emAberto());
+        // Cobrancas vivas que hoje nao tem saldo (recorrente antes do primeiro
+        // vencimento). Sem este bloco elas nao apareciam em tela nenhuma.
+        model.addAttribute("aguardando", carteira.situacoes().stream()
+                .filter(SituacaoCobranca::isSemSaldoHoje)
+                .toList());
         model.addAttribute("devedores", devedores);
         model.addAttribute("agenda", carteira.agenda(30));
         model.addAttribute("hoje", LocalDate.now());

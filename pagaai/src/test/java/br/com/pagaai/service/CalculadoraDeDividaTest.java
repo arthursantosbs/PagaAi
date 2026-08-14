@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -255,6 +257,70 @@ class CalculadoraDeDividaTest {
         assertThat(s.parcelas().get(0).valor()).isEqualByComparingTo("250.00");
         assertThat(s.parcelas().get(0).situacao()).isEqualTo(SituacaoParcela.A_VENCER);
         assertThat(s.isEmAtraso()).isFalse();
+    }
+
+    // ------------------------------------------------------------------
+    // Regressao: nenhuma cobranca pode sumir das telas.
+    // ------------------------------------------------------------------
+
+    @Test
+    void recorrenteAntesDoPrimeiroVencimentoNaoSomeDasTelas() {
+        // Bug real: cobranca recorrente cadastrada antes do primeiro vencimento
+        // tem saldo zero hoje e nao esta quitada. As telas mostravam apenas
+        // "devedora" ou "quitada", entao ela caia num vao e desaparecia — o
+        // usuario achava que o cadastro nao tinha sido salvo.
+        Cobranca c = new Cobranca();
+        c.setId(9L);
+        c.setCliente(cliente);
+        c.setDescricao("Mensalidade que ainda vai comecar");
+        c.setValorTotal(null);
+        c.setValorParcela(new BigDecimal("150.00"));
+        c.setPeriodicidade(Periodicidade.MENSAL);
+        c.setDiaDoMes(20);
+        c.setDataInicio(LocalDate.of(2026, 9, 20));
+        c.setAtiva(true);
+
+        SituacaoCobranca s = calcular(c, "0");
+
+        assertThat(s.isDevedor()).isFalse();
+        assertThat(s.quitada()).isFalse();
+        // Precisa cair no terceiro grupo, que as telas listam.
+        assertThat(s.isSemSaldoHoje()).isTrue();
+        assertThat(s.proximoVencimento()).isEqualTo(LocalDate.of(2026, 9, 20));
+        assertThat(s.ativa()).isTrue();
+    }
+
+    @Test
+    void todaCobrancaCaiEmExatamenteUmGrupoDeTela() {
+        // Invariante das telas: devedora, quitada ou sem saldo hoje — sempre uma,
+        // nunca nenhuma. Enquanto isso valer, nada desaparece da interface.
+        List<SituacaoCobranca> variados = List.of(
+                calcular(fiado("100.00", "100.00", 20, LocalDate.of(2026, 7, 20)), "0"),    // devedora
+                calcular(fiado("100.00", "100.00", 20, LocalDate.of(2026, 7, 20)), "100"),  // quitada
+                calcular(fiado("300.00", "100.00", 25, LocalDate.of(2026, 8, 25)), "0"),    // so a vencer
+                calcular(recorrenteFuturo(), "0"));                                          // sem saldo hoje
+
+        for (SituacaoCobranca s : variados) {
+            long grupos = Stream.of(s.isDevedor(), s.quitada(), s.isSemSaldoHoje())
+                    .filter(Boolean::booleanValue)
+                    .count();
+            assertThat(grupos)
+                    .as("cobranca '%s' precisa aparecer em exatamente um grupo", s.descricao())
+                    .isEqualTo(1);
+        }
+    }
+
+    private Cobranca recorrenteFuturo() {
+        Cobranca c = new Cobranca();
+        c.setId(10L);
+        c.setCliente(cliente);
+        c.setDescricao("Recorrente futura");
+        c.setValorParcela(new BigDecimal("150.00"));
+        c.setPeriodicidade(Periodicidade.MENSAL);
+        c.setDiaDoMes(20);
+        c.setDataInicio(LocalDate.of(2026, 9, 20));
+        c.setAtiva(true);
+        return c;
     }
 
     @Test

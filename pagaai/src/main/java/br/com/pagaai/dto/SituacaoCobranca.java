@@ -24,6 +24,7 @@ public record SituacaoCobranca(
         String clienteInstagram,
         String descricao,
         boolean valorFechado,
+        boolean ativa,
         BigDecimal valorTotal,
         BigDecimal totalPago,
         BigDecimal saldoDevedor,
@@ -45,6 +46,19 @@ public record SituacaoCobranca(
 
     public boolean isDevedor() {
         return saldoDevedor.signum() > 0;
+    }
+
+    /**
+     * Cobranca que existe mas hoje nao tem nada a receber, sem estar quitada.
+     * O caso tipico e a cobranca recorrente cadastrada antes do primeiro
+     * vencimento: o saldo de hoje e zero, mas ela nao acabou.
+     *
+     * <p>Existe porque as telas separavam apenas "devedora" e "quitada", e uma
+     * cobranca nesta situacao sumia de todas elas — parecia que o cadastro nao
+     * tinha sido salvo. Sempre inclua este grupo ao listar dividas.
+     */
+    public boolean isSemSaldoHoje() {
+        return !quitada && saldoDevedor.signum() == 0;
     }
 
     /** Quanto o cliente precisa pagar agora para ficar em dia (atraso + o que vence hoje). */
