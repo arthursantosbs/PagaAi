@@ -14,34 +14,39 @@ public class CobrancaForm {
 
     private Long id;
 
-    @NotNull(message = "Selecione o cliente")
+    @NotNull(message = "Escolha o cliente na lista. Se ele ainda não está cadastrado, "
+            + "abra Clientes e clique em Novo cliente primeiro.")
     private Long clienteId;
 
-    @NotBlank(message = "Descreva a dívida")
-    @Size(max = 150)
+    @NotBlank(message = "Escreva o que o cliente levou, para você lembrar depois. "
+            + "Exemplo: 2 caixas de produto.")
+    @Size(max = 150, message = "Descrição muito longa. Resuma em até 150 letras.")
     private String descricao;
 
-    @NotNull(message = "Escolha o tipo da cobrança")
+    @NotNull(message = "Escolha se é uma dívida com valor total (fiado) ou uma cobrança recorrente.")
     private TipoCobranca tipo = TipoCobranca.VALOR_FECHADO;
 
     /** Obrigatorio quando o tipo e VALOR_FECHADO. */
-    @DecimalMin(value = "0.01", message = "O valor total precisa ser maior que zero")
+    @DecimalMin(value = "0.01", message = "O valor total precisa ser maior que zero. "
+            + "Digite quanto o cliente deve no total, por exemplo 500.")
     private BigDecimal valorTotal;
 
     /** Quanto ele paga por vez. Em branco numa divida fechada = paga tudo de uma vez. */
-    @DecimalMin(value = "0.01", message = "O valor da parcela precisa ser maior que zero")
+    @DecimalMin(value = "0.01", message = "O valor de cada pagamento precisa ser maior que zero. "
+            + "Se ele vai pagar tudo de uma vez, deixe em branco.")
     private BigDecimal valorParcela;
 
-    @NotNull(message = "Escolha mensal ou semanal")
+    @NotNull(message = "Escolha se ele paga por mês ou por semana.")
     private Periodicidade periodicidade = Periodicidade.MENSAL;
 
-    @Min(value = 1, message = "Dia do mês entre 1 e 31")
-    @Max(value = 31, message = "Dia do mês entre 1 e 31")
+    @Min(value = 1, message = "O dia do mês vai de 1 a 31.")
+    @Max(value = 31, message = "O dia do mês vai de 1 a 31.")
     private Integer diaDoMes;
 
     private DayOfWeek diaDaSemana;
 
-    @NotNull(message = "Informe a data do primeiro vencimento")
+    @NotNull(message = "Informe a data do primeiro vencimento — o dia combinado "
+            + "para o cliente começar a pagar.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dataInicio = LocalDate.now();
 

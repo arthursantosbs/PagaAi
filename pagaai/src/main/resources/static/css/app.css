@@ -719,6 +719,181 @@ textarea:focus {
     color: #3730a3;
 }
 
+/* ==========================================================================
+   ACESSIBILIDADE E ALVO DE TOQUE
+
+   Medido na auditoria: o contorno de foco tinha 1.63:1 de contraste (some na
+   prática), a borda dos campos 1.25:1, e os campos usavam 15.2px — abaixo de
+   16px o Safari do iPhone amplia a página sozinho a cada toque.
+   ========================================================================== */
+
+input[type=text],
+input[type=tel],
+input[type=date],
+input[type=number],
+input[type=search],
+input[type=password],
+select,
+textarea {
+    font-size: 16px;          /* menos que isso faz o iPhone dar zoom ao focar */
+    min-height: 44px;         /* alvo confortável para o dedo */
+    border-color: #c3cfcc;    /* a borda anterior tinha 1.25:1 e sumia */
+}
+
+.btn {
+    min-height: 44px;
+    padding: .6rem 1rem;
+}
+
+/* O botão que move dinheiro nunca deve ficar apertado. */
+.btn-receber {
+    min-height: 48px;
+    width: 100%;
+}
+
+.btn-grande {
+    min-height: 52px;
+    font-size: 1rem;
+    padding: .8rem 1.5rem;
+}
+
+/* Durante o envio: mostra que o sistema está trabalhando. */
+.btn:disabled {
+    opacity: .6;
+    cursor: progress;
+}
+
+/* Foco de teclado forte, visível em qualquer fundo. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+    outline: 3px solid var(--marca);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Rótulo que some da vista e continua sendo lido por leitor de tela. */
+.so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- primeiro uso e estados vazios que oferecem saída ---------- */
+.boas-vindas h1 {
+    font-size: 1.5rem;
+    margin: 0 0 .25rem;
+    letter-spacing: -.02em;
+}
+
+.subtitulo-tela {
+    color: var(--texto-fraco);
+    margin: 0 0 1.25rem;
+}
+
+.passos-inicio {
+    margin: 0 0 1.5rem;
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: .7rem;
+}
+
+.passos-inicio li::marker {
+    color: var(--marca);
+    font-weight: 700;
+}
+
+.vazio-acao {
+    background: var(--marca-clara);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: flex-start;
+}
+
+.vazio-acao p {
+    margin: 0;
+}
+
+.vazio-acao .btn {
+    margin-top: .5rem;
+}
+
+.contato-zap {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ---------- tela de erro ---------- */
+.tela-erro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.25rem;
+    background: var(--fundo);
+}
+
+.cartao-erro {
+    background: var(--superficie);
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    box-shadow: var(--sombra);
+    padding: 2rem 1.75rem;
+    max-width: 34rem;
+    width: 100%;
+}
+
+.cartao-erro .marca {
+    margin-bottom: 1.75rem;
+}
+
+.cartao-erro h1 {
+    font-size: 1.4rem;
+    letter-spacing: -.02em;
+    margin: 0 0 .6rem;
+}
+
+.cartao-erro p {
+    color: var(--texto-fraco);
+    margin: 0 0 1rem;
+}
+
+.detalhe-erro {
+    background: var(--fundo);
+    border-left: 3px solid var(--alerta);
+    border-radius: 0 8px 8px 0;
+    padding: .75rem .9rem;
+    color: var(--texto) !important;
+    font-size: .95rem;
+}
+
+.acoes-erro {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+}
+
+.rodape-erro {
+    margin-top: 1.5rem !important;
+    padding-top: 1rem;
+    border-top: 1px solid var(--borda);
+    font-size: .85rem;
+}
+
 /* ---------- telas pequenas ---------- */
 @media (max-width: 640px) {
     .grade-2,
@@ -750,6 +925,100 @@ textarea:focus {
 
     .form-pagamento {
         grid-template-columns: 1fr;
+    }
+
+    /* ----------------------------------------------------------------------
+       TABELA VIRA CARTÃO NO CELULAR
+
+       Com 6 a 8 colunas, a tabela rolava de lado e a ÚLTIMA coluna — a do
+       botão de ação — ficava fora da tela. No balcão, com uma mão, o dono não
+       alcançava justamente o botão que registra dinheiro.
+
+       Aqui cada linha vira um cartão empilhado. O rótulo de cada campo vem do
+       atributo data-rotulo do <td>; sem ele o valor apareceria sem contexto.
+       É opt-in pela classe .cartoes-no-celular, para a tabela só mudar onde
+       os rótulos foram preenchidos.
+       ---------------------------------------------------------------------- */
+    .tabela.cartoes-no-celular,
+    .tabela.cartoes-no-celular tbody,
+    .tabela.cartoes-no-celular tr,
+    .tabela.cartoes-no-celular td {
+        display: block;
+        width: 100%;
+    }
+
+    .tabela.cartoes-no-celular thead {
+        display: none;
+    }
+
+    .tabela.cartoes-no-celular tr {
+        background: var(--superficie);
+        border: 1px solid var(--borda);
+        border-radius: var(--raio);
+        padding: .85rem 1rem;
+        margin-bottom: .75rem;
+        box-shadow: var(--sombra);
+    }
+
+    .tabela.cartoes-no-celular td {
+        border-bottom: none;
+        padding: .3rem 0;
+        text-align: left !important;
+        white-space: normal;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+    }
+
+    /* O rótulo da coluna, que no desktop está no cabeçalho da tabela. */
+    .tabela.cartoes-no-celular td[data-rotulo]::before {
+        content: attr(data-rotulo);
+        color: var(--texto-fraco);
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 600;
+        flex: none;
+    }
+
+    /* A primeira célula é o nome: vira o título do cartão. */
+    .tabela.cartoes-no-celular td:first-child {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 600;
+        padding-bottom: .5rem;
+        margin-bottom: .35rem;
+        border-bottom: 1px solid var(--linha-fina, var(--borda));
+    }
+
+    .tabela.cartoes-no-celular td:first-child::before {
+        content: none;
+    }
+
+    /* A faixa colorida de gravidade vai para a borda do cartão inteiro. */
+    .tabela.cartoes-no-celular tr.atraso-leve  { border-left: 4px solid var(--alerta); }
+    .tabela.cartoes-no-celular tr.atraso-medio { border-left: 4px solid var(--atencao, #ea580c); }
+    .tabela.cartoes-no-celular tr.atraso-grave { border-left: 4px solid var(--perigo); }
+    .tabela.cartoes-no-celular tr.pago         { border-left: 4px solid var(--ok); }
+
+    .tabela.cartoes-no-celular td:first-child {
+        box-shadow: none !important;
+    }
+
+    /* A ação ocupa a largura toda, no fim do cartão, sempre alcançável. */
+    .tabela.cartoes-no-celular td.acoes {
+        display: block;
+        margin-top: .6rem;
+    }
+
+    .tabela.cartoes-no-celular td.acoes .btn,
+    .tabela.cartoes-no-celular td.acoes form {
+        width: 100%;
+    }
+
+    .tabela.cartoes-no-celular td.acoes::before {
+        content: none;
     }
 
     .form-pagamento .campo-largo {

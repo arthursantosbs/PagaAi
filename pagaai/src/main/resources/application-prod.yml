@@ -58,8 +58,10 @@ server:
         same-site: lax
       timeout: 12h
   error:
+    # A tela em templates/error.html substitui a pagina branca do Spring.
     whitelabel:
       enabled: false
+    include-message: always
 
 management:
   endpoints:

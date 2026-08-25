@@ -63,6 +63,11 @@ spring:
 
 server:
   port: 8080
+  error:
+    # Sem isto, a explicacao escrita nos services ("Essa divida nao existe mais...")
+    # e descartada e a tela de erro fica muda. O padrao do Spring e "never".
+    # Nao expoe stack trace — so a frase que nos mesmos escrevemos.
+    include-message: always
 
 # -----------------------------------------------------------------------------
 # Configuracao propria do Paga ai. Lida por config/PagaAiProperties.java.

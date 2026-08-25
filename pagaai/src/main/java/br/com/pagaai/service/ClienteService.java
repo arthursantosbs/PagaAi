@@ -41,7 +41,9 @@ public class ClienteService {
 
     public Cliente buscarPorId(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Esse cliente não existe mais — ele pode ter sido excluído por você ou "
+                                + "pelo seu sócio. Volte em Clientes e escolha na lista."));
     }
 
     @Transactional

@@ -8,8 +8,9 @@ public class ClienteForm {
 
     private Long id;
 
-    @NotBlank(message = "Informe o nome do cliente")
-    @Size(max = 120)
+    @NotBlank(message = "Digite o nome do cliente. É o único campo obrigatório — "
+            + "o resto você preenche depois, se quiser.")
+    @Size(max = 120, message = "Nome muito longo. Use até 120 letras.")
     private String nome;
 
     @Size(max = 30)
