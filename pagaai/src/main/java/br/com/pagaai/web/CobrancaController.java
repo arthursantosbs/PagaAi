@@ -137,7 +137,10 @@ public class CobrancaController {
         }
         try {
             Cobranca cobranca = cobrancaService.salvar(form);
-            flash.addFlashAttribute("sucesso", "Dívida salva.");
+            flash.addFlashAttribute("sucesso", form.getId() == null
+                    ? "Dívida cadastrada. Quando o cliente pagar, registre aqui embaixo em "
+                            + "\"Registrar recebimento\" — pode ser valor parcial."
+                    : "Alterações salvas.");
             return "redirect:/cobrancas/" + cobranca.getId();
         } catch (ResponseStatusException e) {
             model.addAttribute("clientes", clienteService.listar(null));
@@ -159,7 +162,10 @@ public class CobrancaController {
         try {
             cobrancaService.registrarPagamento(id, valor, dataPagamento, observacao,
                     usuario == null ? null : usuario.getUsername());
-            flash.addFlashAttribute("sucesso", "Pagamento registrado.");
+            // Confirmar "Pagamento registrado" nao responde a pergunta que o dono
+            // tem na cabeca, que e "e agora, quanto falta?". A mensagem responde.
+            flash.addFlashAttribute("sucesso",
+                    confirmacaoDeRecebimento(valor, carteira.situacaoDa(cobrancaService.buscarComCliente(id))));
         } catch (ResponseStatusException e) {
             flash.addFlashAttribute("erro", e.getReason());
         }
@@ -171,7 +177,8 @@ public class CobrancaController {
                            @RequestParam(required = false) String voltarPara,
                            RedirectAttributes flash) {
         Long clienteId = cobrancaService.estornarPagamento(pagamentoId);
-        flash.addFlashAttribute("sucesso", "Pagamento estornado.");
+        flash.addFlashAttribute("sucesso",
+                "Pagamento estornado. O saldo voltou ao que era antes dele.");
         return "redirect:" + destino(voltarPara, "/clientes/" + clienteId);
     }
 
@@ -190,6 +197,36 @@ public class CobrancaController {
         flash.addFlashAttribute("sucesso", "Dívida excluída.");
         return "redirect:" + destino(voltarPara, "/cobrancas");
     }
+
+    /**
+     * Monta a confirmacao do recebimento ja respondendo "e agora?": diz quanto
+     * entrou e quanto falta, ou comemora a quitacao.
+     */
+    private String confirmacaoDeRecebimento(BigDecimal valor, SituacaoCobranca situacao) {
+        String recebido = "Recebido " + reais(valor) + " de " + situacao.clienteNome() + ".";
+
+        if (situacao.quitada()) {
+            return recebido + " Dívida quitada — não gera mais cobrança.";
+        }
+        if (situacao.isEmAtraso()) {
+            return recebido + " Ainda faltam " + reais(situacao.saldoDevedor())
+                    + ", sendo " + reais(situacao.valorEmAtraso()) + " já vencido.";
+        }
+        if (situacao.proximoVencimento() != null) {
+            return recebido + " Faltam " + reais(situacao.saldoDevedor())
+                    + ". O próximo vencimento é "
+                    + situacao.proximoVencimento().format(DATA_NA_TELA) + ".";
+        }
+        return recebido + " Faltam " + reais(situacao.saldoDevedor()) + ".";
+    }
+
+    private String reais(BigDecimal valor) {
+        return "R$ " + valor.setScale(2, java.math.RoundingMode.HALF_UP)
+                .toPlainString().replace('.', ',');
+    }
+
+    private static final java.time.format.DateTimeFormatter DATA_NA_TELA =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     /** So aceita caminho interno, para nao virar redirect aberto. */
     private String destino(String voltarPara, String padrao) {

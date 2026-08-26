@@ -32,6 +32,39 @@
       Os caracteres < > " vem escapados porque isto vive dentro de um atributo HTML.
     -->
     <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&gt;&lt;circle cx='16' cy='16' r='13' fill='none' stroke='%230f766e' stroke-opacity='.22' stroke-width='6'/&gt;&lt;circle cx='16' cy='16' r='13' fill='none' stroke='%230f766e' stroke-width='6' stroke-linecap='round' stroke-dasharray='57 82' transform='rotate(-90 16 16)'/&gt;&lt;/svg&gt;">
+
+    <!--
+      Trava contra envio duplicado.
+
+      No plano gratuito o servidor demora a responder. Sem retorno visual, a
+      pessoa toca de novo achando que não pegou — e o mesmo pagamento entra
+      duas vezes na conta do cliente. Aqui o botão desabilita no primeiro
+      toque e diz que está trabalhando.
+
+      Fica no cabeçalho porque toda tela inclui este fragmento: uma vez só,
+      valendo para todos os formulários do sistema.
+    -->
+    <script th:inline="none">
+        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('submit', function (evento) {
+                // Respeita quem cancelou (os confirm() de exclusão).
+                if (evento.defaultPrevented) { return; }
+
+                var form = evento.target;
+                if (form.dataset.enviando === '1') { evento.preventDefault(); return; }
+                form.dataset.enviando = '1';
+
+                var botao = form.querySelector('button[type=submit], button:not([type])');
+                if (!botao) { return; }
+
+                botao.dataset.textoOriginal = botao.textContent;
+                botao.textContent = 'Aguarde...';
+                // Desabilitar antes do envio descartaria o botão; o atraso de um
+                // ciclo deixa o formulário sair completo.
+                setTimeout(function () { botao.disabled = true; }, 0);
+            });
+        });
+    </script>
 </head>
 
 <body>
@@ -97,13 +130,20 @@
       th:action="@{'/cobrancas/' + ${situacao.cobrancaId()} + '/pagamentos'}" class="form-pagamento">
     <input type="hidden" name="voltarPara" th:value="${voltarPara}">
     <div class="campo">
-        <label th:for="'valor-' + ${situacao.cobrancaId()}">Valor recebido (R$)</label>
-        <input type="number" step="0.01" min="0.01" name="valor" required
+        <label th:for="'valor-' + ${situacao.cobrancaId()}">Quanto ele pagou (R$)</label>
+        <!--
+          type=text com inputmode=decimal, e não type=number.
+          O type=number recusa a vírgula do teclado brasileiro: quem digitava
+          "365,00" ficava com o campo vazio e via "falta o valor". Quem converte
+          agora é o config/FormatoBrasileiro, que aceita 365, 365,00 e 1.234,56.
+        -->
+        <input type="text" inputmode="decimal" name="valor" required autocomplete="off"
                th:id="'valor-' + ${situacao.cobrancaId()}"
-               th:value="${situacao.valorSugerido}">
+               th:value="${{situacao.valorSugerido}}">
+        <small class="dica">Pode ser menos que o total. O que faltar continua na conta.</small>
     </div>
     <div class="campo">
-        <label th:for="'data-' + ${situacao.cobrancaId()}">Quando</label>
+        <label th:for="'data-' + ${situacao.cobrancaId()}">Quando ele pagou</label>
         <input type="date" name="dataPagamento" th:id="'data-' + ${situacao.cobrancaId()}" th:value="${hoje}">
     </div>
     <div class="campo campo-largo">
@@ -111,7 +151,7 @@
         <input type="text" name="observacao" maxlength="255" placeholder="opcional"
                th:id="'obs-' + ${situacao.cobrancaId()}">
     </div>
-    <button type="submit" class="btn btn-ok">Registrar recebimento</button>
+    <button type="submit" class="btn btn-ok btn-receber">Registrar recebimento</button>
 </form>
 
 <!-- Etiqueta com o estado da divida. -->

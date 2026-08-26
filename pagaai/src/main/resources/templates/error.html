@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<!--
+  Tela de erro. Substitui a pagina de erro padrao, que vinha em ingles e sem
+  saida. A explicacao especifica de cada caso vem do proprio sistema e depende
+  de server.error.include-message estar ligado no application.yml.
+
+  Nao inclui o menu de proposito: numa falha de autenticacao o contexto de
+  seguranca pode nao existir, e ler o usuario logado quebraria a tela de erro.
+-->
+<head th:replace="~{fragmentos/layout :: cabeca('Algo deu errado')}"></head>
+<body class="tela-erro">
+
+<main class="cartao-erro">
+
+    <a class="marca" th:href="@{/}">
+        <svg th:replace="~{fragmentos/layout :: simbolo}"></svg>
+        <span>Paga<b>aí</b></span>
+    </a>
+
+    <!-- 404: o registro não existe mais -->
+    <div th:if="${status != null and status == 404}">
+        <h1>Esse registro não existe mais</h1>
+        <p>Ele pode ter sido excluído por você ou pelo seu sócio. Se você chegou
+            aqui por um link salvo ou pelo botão de voltar do navegador, o link
+            está velho.</p>
+    </div>
+
+    <!-- 403: sem permissão -->
+    <div th:if="${status != null and status == 403}">
+        <h1>Essa tela é só do administrador</h1>
+        <p>Seu usuário é de sócio e não abre essa parte do sistema. Se você
+            precisa dela, peça para o dono da conta.</p>
+    </div>
+
+    <!-- 400: o que foi enviado não serve -->
+    <div th:if="${status != null and status == 400}">
+        <h1>Faltou alguma informação</h1>
+        <p>Alguma coisa no que foi enviado não estava certa. Volte, confira os
+            campos e tente de novo.</p>
+    </div>
+
+    <!-- Qualquer outro caso, inclusive 500 -->
+    <div th:unless="${status != null and (status == 404 or status == 403 or status == 400)}">
+        <h1>Deu problema aqui do nosso lado</h1>
+        <p><strong>Nada do que você já registrou foi perdido.</strong> Os clientes,
+            as dívidas e os pagamentos continuam salvos. Espere um minuto e tente
+            de novo.</p>
+    </div>
+
+    <!-- A explicação específica, quando o sistema tem uma. -->
+    <p class="detalhe-erro" th:if="${message != null and !#strings.isEmpty(message)
+                                    and message != 'No message available'}"
+       th:text="${message}"></p>
+
+    <div class="acoes-erro">
+        <a class="btn btn-primario" th:href="@{/}">Ir para o Painel</a>
+        <a class="btn btn-fantasma" th:href="@{/clientes}">Ver clientes</a>
+    </div>
+
+    <p class="rodape-erro">
+        Se isso continuar acontecendo, anote o que você estava fazendo e a hora
+        <span th:if="${path}" th:text="'(' + ${path} + ')'"></span>. Ajuda a achar a causa.
+    </p>
+
+</main>
+
+</body>
+</html>

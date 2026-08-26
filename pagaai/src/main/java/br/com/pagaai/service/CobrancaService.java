@@ -13,12 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class CobrancaService {
+
+    /** Teto de vencimentos por divida; alem disso o carne vira ruido e a tela trava. */
+    private static final int MAX_PARCELAS = 600;
 
     private final CobrancaRepository cobrancaRepository;
     private final PagamentoRepository pagamentoRepository;
@@ -34,13 +38,17 @@ public class CobrancaService {
 
     public Cobranca buscarPorId(Long id) {
         return cobrancaRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobrança não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Essa dívida não existe mais — ela pode ter sido excluída por você ou "
+                                + "pelo seu sócio. Volte em Dívidas e escolha na lista."));
     }
 
     /** Usar sempre que o cliente da cobranca for lido fora da transacao. */
     public Cobranca buscarComCliente(Long id) {
         return cobrancaRepository.findByIdComCliente(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cobrança não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Essa dívida não existe mais — ela pode ter sido excluída por você ou "
+                                + "pelo seu sócio. Volte em Dívidas e escolha na lista."));
     }
 
     public List<Cobranca> ativas() {
@@ -71,37 +79,64 @@ public class CobrancaService {
         return cobrancaRepository.save(cobranca);
     }
 
+    /**
+     * Regra das mensagens deste servico: toda recusa diz o que aconteceu E o que
+     * fazer em seguida, com exemplo quando ajuda. Quem le nao e programador e
+     * esta no balcao, muitas vezes com o cliente esperando.
+     */
     private void validar(CobrancaForm form) {
         if (form.getTipo() == TipoCobranca.VALOR_FECHADO) {
             if (form.getValorTotal() == null || form.getValorTotal().signum() <= 0) {
-                throw erro("Informe o valor total da dívida");
+                throw erro("Falta o valor total da dívida. Digite quanto o cliente deve no total — "
+                        + "por exemplo 500. Se for uma mensalidade que não acaba, troque o tipo "
+                        + "para \"Cobrança recorrente\".");
             }
         } else if (form.getValorParcela() == null) {
-            throw erro("Informe o valor de cada cobrança");
+            throw erro("Falta o valor de cada cobrança. Numa cobrança recorrente é quanto você cobra "
+                    + "a cada vencimento — por exemplo 150 por mês.");
         }
 
         if (form.getValorParcela() == null || form.getValorParcela().signum() <= 0) {
-            throw erro("O valor de cada pagamento precisa ser maior que zero");
+            throw erro("O valor de cada pagamento precisa ser maior que zero. "
+                    + "Se o cliente vai pagar tudo de uma vez, deixe esse campo em branco.");
         }
 
         if (form.getPeriodicidade() == Periodicidade.MENSAL && form.getDiaDoMes() == null) {
-            throw erro("Informe o dia do mês");
+            throw erro("Escolha o dia do mês em que vence, de 1 a 31. "
+                    + "Se o mês não tiver esse dia, o vencimento cai no último dia do mês.");
         }
         if (form.getPeriodicidade() == Periodicidade.SEMANAL && form.getDiaDaSemana() == null) {
-            throw erro("Informe o dia da semana");
+            throw erro("Escolha o dia da semana em que vence — por exemplo, toda sexta-feira.");
         }
         if (form.getDataFim() != null && form.getDataFim().isBefore(form.getDataInicio())) {
-            throw erro("A data fim não pode ser antes do início");
+            throw erro("A data de término está antes do primeiro vencimento. "
+                    + "Corrija uma das duas datas, ou deixe o término em branco "
+                    + "para a cobrança não ter fim.");
         }
 
-        // Bloqueia parcelamento absurdo (ex.: 10.000 em parcelas de 1 real = 10.000 vencimentos).
+        // Trava contra parcelamento absurdo (10.000 em parcelas de 1 real = 10.000 vencimentos).
+        // A mensagem calcula uma parcela que funciona, em vez de so reclamar.
         if (form.getValorTotal() != null) {
-            BigDecimal parcelas = form.getValorTotal().divide(form.getValorParcela(), 0,
-                    java.math.RoundingMode.CEILING);
-            if (parcelas.intValue() > 600) {
-                throw erro("Esse valor de parcela geraria mais de 600 vencimentos. Aumente o valor da parcela.");
+            BigDecimal parcelas = form.getValorTotal().divide(form.getValorParcela(), 0, RoundingMode.CEILING);
+            if (parcelas.intValue() > MAX_PARCELAS) {
+                BigDecimal sugerida = form.getValorTotal()
+                        .divide(BigDecimal.valueOf(MAX_PARCELAS), 2, RoundingMode.UP);
+                throw erro("Uma dívida de " + reais(form.getValorTotal()) + " em parcelas de "
+                        + reais(form.getValorParcela()) + " daria " + parcelas + " vencimentos, "
+                        + "o que o sistema não comporta. Aumente o valor da parcela para "
+                        + reais(sugerida) + " ou mais.");
             }
         }
+    }
+
+    /** Formata em reais para caber no meio de uma frase. */
+    private String reais(BigDecimal valor) {
+        return "R$ " + valor.setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
+    }
+
+    /** Data no formato que o usuario ve na tela, para a mensagem citar a data dele. */
+    private String porExtenso(LocalDate data) {
+        return data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     @Transactional
@@ -123,15 +158,28 @@ public class CobrancaService {
     public Pagamento registrarPagamento(Long cobrancaId, BigDecimal valor, LocalDate dataPagamento,
                                         String observacao, String usuario) {
         Cobranca cobranca = buscarPorId(cobrancaId);
+
         if (valor == null || valor.signum() <= 0) {
-            throw erro("Informe um valor maior que zero");
+            throw erro("Digite quanto o cliente pagou. Para oitenta reais, digite 80 ou 80,00.");
         }
+
         LocalDate data = dataPagamento == null ? LocalDate.now() : dataPagamento;
-        if (data.isBefore(cobranca.getDataInicio())) {
-            throw erro("O pagamento não pode ser anterior ao início da dívida");
-        }
+
+        // NAO ha trava para pagamento anterior ao inicio da divida, de proposito.
+        //
+        // Ela existia e atrapalhava sem proteger nada: o comerciante recebe uma
+        // entrada antes de lancar a venda, ou cadastra a divida dias depois de ela
+        // ter comecado. A trava o obrigava a mentir a data para conseguir salvar,
+        // o que e pior do que aceitar a data verdadeira.
+        //
+        // E seguro: a alocacao do dinheiro entre as parcelas usa apenas o VALOR
+        // pago (ver CalculadoraDeDivida), nunca a data. A data serve so para o
+        // historico e para o relatorio de quanto entrou no mes.
+
         if (data.isAfter(LocalDate.now())) {
-            throw erro("O pagamento não pode ter data futura");
+            throw erro("A data " + porExtenso(data) + " ainda não chegou, então esse dinheiro "
+                    + "ainda não entrou. Se o cliente já pagou, use a data de hoje ou o dia em "
+                    + "que ele pagou. Se ele ainda vai pagar, registre quando o dinheiro cair.");
         }
 
         Pagamento pagamento = new Pagamento();
@@ -147,7 +195,9 @@ public class CobrancaService {
     @Transactional
     public Long estornarPagamento(Long pagamentoId) {
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pagamento não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Esse pagamento já foi estornado — talvez pelo seu sócio, em outro "
+                                + "aparelho. Atualize a página para ver a lista de agora."));
         Long clienteId = pagamento.getCobranca().getCliente().getId();
         pagamentoRepository.delete(pagamento);
         return clienteId;

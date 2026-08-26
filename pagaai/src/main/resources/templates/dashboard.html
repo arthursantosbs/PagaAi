@@ -9,7 +9,29 @@
 
     <div th:replace="~{fragmentos/layout :: avisos}"></div>
 
-    <section class="indicadores">
+    <!--
+      Primeiro uso. Sem isto, quem entra com o banco vazio vê seis zeros e três
+      caixas dizendo que não há nada — sem nenhum caminho até o primeiro cliente.
+      O único botão da tela levava a "Nova dívida", que exige cliente cadastrado:
+      um beco sem saída logo na primeira tela.
+    -->
+    <section class="bloco boas-vindas" th:if="${resumo.totalClientes() == 0}">
+        <h1>Bem-vindo ao Paga aí</h1>
+        <p class="subtitulo-tela">Seu caderninho de fiado começa em dois passos.</p>
+        <ol class="passos-inicio">
+            <li>
+                <strong>Cadastre quem compra fiado.</strong>
+                Só o nome é obrigatório — telefone e Instagram ajudam na hora de cobrar.
+            </li>
+            <li>
+                <strong>Lance a dívida.</strong>
+                Diga quanto ele deve no total e quanto vai pagar por vez. O resto o sistema calcula.
+            </li>
+        </ol>
+        <a class="btn btn-primario btn-grande" th:href="@{/clientes/novo}">Cadastrar o primeiro cliente</a>
+    </section>
+
+    <section class="indicadores" th:unless="${resumo.totalClientes() == 0}">
         <div class="indicador">
             <span class="rotulo">Total a receber</span>
             <strong class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalAReceber(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
@@ -53,7 +75,10 @@
         <p class="vazio" th:if="${#lists.isEmpty(atrasados)}">Ninguém atrasado. Tudo dentro do prazo.</p>
 
         <div class="tabela-rolagem" th:unless="${#lists.isEmpty(atrasados)}">
-            <table class="tabela">
+            <!-- cartoes-no-celular: no telefone cada linha vira um cartão empilhado,
+                 para o botão de ação não ficar fora da tela. Os data-rotulo abaixo
+                 são os rótulos que aparecem no lugar do cabeçalho. Ver app.css. -->
+            <table class="tabela cartoes-no-celular">
                 <thead>
                 <tr>
                     <th>Cliente</th>
@@ -70,16 +95,26 @@
                         <a th:href="@{'/clientes/' + ${d.clienteId()}}" th:text="${d.clienteNome()}">Cliente</a>
                         <small class="discreto bloco-linha" th:text="${d.dividasAbertas()} + ' dívida(s)'"></small>
                     </td>
-                    <td class="contato">
-                        <span th:if="${d.telefone()}" th:text="${d.telefone()}"></span>
+                    <td class="contato" data-rotulo="Contato">
+                        <!--
+                          O telefone abre a conversa no WhatsApp com um toque.
+                          Antes era texto solto: para cobrar, o dono copiava o
+                          número na mão — sendo que cobrar é a razão do produto.
+                          O wa.me exige só dígitos, com o 55 na frente.
+                        -->
+                        <a th:if="${d.telefone()}" target="_blank" rel="noopener"
+                           class="contato-zap"
+                           th:href="'https://wa.me/55' + ${#strings.replaceAll(d.telefone(), '\D', '')}"
+                           th:text="${d.telefone()}"></a>
                         <a th:if="${d.instagram()}" target="_blank" rel="noopener"
                            th:href="'https://instagram.com/' + ${#strings.replace(d.instagram(), '@', '')}"
                            th:text="'@' + ${#strings.replace(d.instagram(), '@', '')}"></a>
                     </td>
-                    <td class="num forte vermelho"
+                    <td class="num forte vermelho" data-rotulo="Atrasado"
                         th:text="'R$ ' + ${#numbers.formatDecimal(d.totalEmAtraso(), 1, 'POINT', 2, 'COMMA')}"></td>
-                    <td class="num" th:text="'R$ ' + ${#numbers.formatDecimal(d.totalDevido(), 1, 'POINT', 2, 'COMMA')}"></td>
-                    <td class="num">
+                    <td class="num" data-rotulo="Deve no total"
+                        th:text="'R$ ' + ${#numbers.formatDecimal(d.totalDevido(), 1, 'POINT', 2, 'COMMA')}"></td>
+                    <td class="num" data-rotulo="Atraso">
                         <span class="etiqueta" th:classappend="${d.severidade}"
                               th:text="${d.diasAtraso()} + ' dias'"></span>
                     </td>

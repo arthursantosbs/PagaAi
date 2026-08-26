@@ -52,15 +52,19 @@ public class UsuarioController {
                         @RequestParam String senha, @RequestParam Papel papel,
                         RedirectAttributes flash) {
         if (senha.length() < 8) {
-            flash.addFlashAttribute("erro", "A senha precisa ter pelo menos 8 caracteres.");
+            flash.addFlashAttribute("erro", "A senha precisa ter pelo menos 8 caracteres. "
+                    + "Uma frase curta funciona bem e é fácil de lembrar, como \"padaria do ze\".");
             return "redirect:/usuarios";
         }
         if (usuarioRepository.existsByLoginIgnoreCase(login)) {
-            flash.addFlashAttribute("erro", "Já existe um usuário com esse login.");
+            flash.addFlashAttribute("erro", "Já existe um usuário com o login \"" + login
+                    + "\". Escolha outro — por exemplo, o primeiro nome junto do sobrenome.");
             return "redirect:/usuarios";
         }
         usuarioService.criar(login.trim(), nome.trim(), senha, papel);
-        flash.addFlashAttribute("sucesso", "Usuário criado.");
+        flash.addFlashAttribute("sucesso", "Usuário \"" + login.trim() + "\" criado. "
+                + "Passe o login e a senha para essa pessoa — de preferência pessoalmente "
+                + "ou por mensagem privada, não por escrito em grupo.");
         return "redirect:/usuarios";
     }
 
@@ -69,11 +73,26 @@ public class UsuarioController {
     public String trocarSenha(@RequestParam String login, @RequestParam String novaSenha,
                               RedirectAttributes flash) {
         if (novaSenha.length() < 8) {
-            flash.addFlashAttribute("erro", "A senha precisa ter pelo menos 8 caracteres.");
+            flash.addFlashAttribute("erro", "A senha precisa ter pelo menos 8 caracteres. "
+                    + "Uma frase curta funciona bem e é fácil de lembrar, como \"padaria do ze\".");
             return "redirect:/usuarios";
         }
+
+        // Conferir aqui, ANTES de chamar o servico, nao e detalhe de estilo.
+        // O UsuarioService lanca UsernameNotFoundException, que e uma excecao de
+        // AUTENTICACAO: o Spring Security a intercepta, limpa a sessao e joga o
+        // usuario no login. Ou seja, um erro de digitacao no login deslogava o
+        // administrador em silencio, e ele nunca sabia se a senha tinha trocado.
+        if (!usuarioRepository.existsByLoginIgnoreCase(login)) {
+            flash.addFlashAttribute("erro", "Não existe usuário com o login \"" + login
+                    + "\". Confira a lista aqui em cima e digite o login exatamente "
+                    + "como aparece lá.");
+            return "redirect:/usuarios";
+        }
+
         usuarioService.trocarSenha(login, novaSenha);
-        flash.addFlashAttribute("sucesso", "Senha atualizada.");
+        flash.addFlashAttribute("sucesso", "Senha de \"" + login + "\" atualizada. "
+                + "Avise essa pessoa para entrar com a senha nova.");
         return "redirect:/usuarios";
     }
 }

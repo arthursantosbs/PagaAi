@@ -14,7 +14,19 @@
             <h2 th:text="${form.id == null} ? 'Nova dívida' : 'Editar dívida'">Dívida</h2>
         </header>
 
-        <form method="post" th:action="@{/cobrancas}" th:object="${form}" class="formulario">
+        <!--
+          Beco sem saída: sem cliente cadastrado, a lista abaixo vem vazia e não
+          há como sair da tela. Agora a tela explica e oferece o caminho.
+        -->
+        <div class="vazio-acao" th:if="${#lists.isEmpty(clientes)}">
+            <p><strong>Você ainda não tem clientes cadastrados.</strong></p>
+            <p>Uma dívida é sempre de alguém, então cadastre o cliente primeiro.
+                Leva dez segundos: só o nome é obrigatório.</p>
+            <a class="btn btn-primario" th:href="@{/clientes/novo}">Cadastrar cliente</a>
+        </div>
+
+        <form method="post" th:action="@{/cobrancas}" th:object="${form}" class="formulario"
+              th:unless="${#lists.isEmpty(clientes)}">
             <input type="hidden" th:field="*{id}">
 
             <div class="campo">
@@ -42,14 +54,17 @@
 
             <div class="campo" id="campoValorTotal">
                 <label for="valorTotal">Valor total da dívida (R$) *</label>
-                <input id="valorTotal" type="number" step="0.01" min="0.01" th:field="*{valorTotal}">
+                <!-- texto + inputmode: o type=number recusa a vírgula do teclado brasileiro -->
+                <input id="valorTotal" type="text" inputmode="decimal" autocomplete="off"
+                       placeholder="500,00" th:field="*{valorTotal}">
                 <small class="dica">Quando a soma dos pagamentos chegar aqui, a dívida quita sozinha.</small>
                 <small class="erro" th:if="${#fields.hasErrors('valorTotal')}" th:errors="*{valorTotal}"></small>
             </div>
 
             <div class="campo">
                 <label for="valorParcela" id="rotuloParcela">Valor de cada pagamento (R$)</label>
-                <input id="valorParcela" type="number" step="0.01" min="0.01" th:field="*{valorParcela}">
+                <input id="valorParcela" type="text" inputmode="decimal" autocomplete="off"
+                       placeholder="100,00" th:field="*{valorParcela}">
                 <small class="dica" id="dicaParcela">Deixe em branco se ele vai pagar tudo de uma vez.</small>
                 <small class="erro" th:if="${#fields.hasErrors('valorParcela')}" th:errors="*{valorParcela}"></small>
             </div>
@@ -80,8 +95,16 @@
 
             <div class="grade-2">
                 <div class="campo">
-                    <label for="dataInicio">Primeiro vencimento *</label>
+                    <label for="dataInicio">A dívida começa em *</label>
                     <input id="dataInicio" type="date" th:field="*{dataInicio}" required>
+                    <!--
+                      Este campo NÃO é o primeiro vencimento, e chamá-lo assim
+                      confundia: o primeiro vencimento é o próximo dia escolhido
+                      acima, a partir desta data. Ex.: começa em 13/08, vence
+                      todo dia 22 → o primeiro vencimento cai em 22/08.
+                    -->
+                    <small class="dica">Normalmente é o dia da compra. O primeiro
+                        vencimento será o próximo dia escolhido acima, a partir daqui.</small>
                 </div>
                 <div class="campo" id="campoDataFim">
                     <label for="dataFim">Termina em (opcional)</label>

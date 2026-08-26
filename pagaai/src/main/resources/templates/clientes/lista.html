@@ -16,11 +16,32 @@
         </header>
 
         <form method="get" th:action="@{/clientes}" class="busca">
-            <input type="search" name="q" th:value="${q}" placeholder="Buscar por nome, telefone ou instagram">
+            <!-- O campo precisa de rótulo para leitor de tela; visualmente o placeholder basta. -->
+            <label for="busca-cliente" class="so-leitor">Buscar cliente</label>
+            <input id="busca-cliente" type="search" name="q" th:value="${q}"
+                   placeholder="Buscar por nome, telefone ou Instagram">
             <button type="submit" class="btn btn-fantasma">Buscar</button>
         </form>
 
-        <p class="vazio" th:if="${#lists.isEmpty(clientes)}">Nenhum cliente cadastrado ainda.</p>
+        <!--
+          Dois casos diferentes, duas mensagens. Antes os dois diziam "Nenhum
+          cliente cadastrado ainda" — e ler isso depois de uma busca, tendo 200
+          clientes, parece perda de dados.
+        -->
+        <div class="vazio-acao" th:if="${#lists.isEmpty(clientes) and (q == null or #strings.isEmpty(q))}">
+            <p><strong>Nenhum cliente cadastrado ainda.</strong></p>
+            <p>Comece cadastrando quem compra fiado com você. Só o nome é obrigatório.</p>
+            <a class="btn btn-primario" th:href="@{/clientes/novo}">Cadastrar o primeiro cliente</a>
+        </div>
+
+        <div class="vazio-acao" th:if="${#lists.isEmpty(clientes) and q != null and !#strings.isEmpty(q)}">
+            <p><strong th:text="'Nenhum cliente encontrado com &quot;' + ${q} + '&quot;.'"></strong></p>
+            <p>Tente só uma parte do nome, o telefone ou o @ do Instagram.</p>
+            <div class="acoes-formulario">
+                <a class="btn btn-fantasma" th:href="@{/clientes}">Ver todos os clientes</a>
+                <a class="btn btn-primario" th:href="@{/clientes/novo}">Cadastrar novo cliente</a>
+            </div>
+        </div>
 
         <div class="tabela-rolagem" th:unless="${#lists.isEmpty(clientes)}">
             <table class="tabela">

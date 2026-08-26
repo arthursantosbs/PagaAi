@@ -74,8 +74,14 @@ public class ClienteController {
         if (erros.hasErrors()) {
             return "clientes/formulario";
         }
+        boolean novo = form.getId() == null;
         Cliente cliente = clienteService.salvar(form);
-        flash.addFlashAttribute("sucesso", "Cliente salvo.");
+        // Cliente cadastrado ainda nao deve nada. Dizer isso evita a duvida mais
+        // comum de quem esta comecando: "cadastrei e nao apareceu em lugar nenhum".
+        flash.addFlashAttribute("sucesso", novo
+                ? "Cliente cadastrado. Ele ainda não deve nada — clique em \"Nova dívida\" "
+                        + "para lançar a primeira compra fiada."
+                : "Alterações salvas.");
         return "redirect:/clientes/" + cliente.getId();
     }
 
@@ -104,8 +110,10 @@ public class ClienteController {
 
     @PostMapping("/{id}/excluir")
     public String excluir(@PathVariable Long id, RedirectAttributes flash) {
+        String nome = clienteService.buscarPorId(id).getNome();
         clienteService.excluir(id);
-        flash.addFlashAttribute("sucesso", "Cliente excluído.");
+        flash.addFlashAttribute("sucesso",
+                nome + " foi excluído, junto com as dívidas e os pagamentos dele.");
         return "redirect:/clientes";
     }
 
