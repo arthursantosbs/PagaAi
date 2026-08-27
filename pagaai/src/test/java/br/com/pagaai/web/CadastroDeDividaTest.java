@@ -1,6 +1,7 @@
 package br.com.pagaai.web;
 
 import br.com.pagaai.dto.ClienteForm;
+import br.com.pagaai.dto.PendenciaCliente;
 import br.com.pagaai.dto.SituacaoCobranca;
 import br.com.pagaai.service.CarteiraService;
 import br.com.pagaai.service.ClienteService;
@@ -13,13 +14,18 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
  * Sobe a aplicacao inteira e cadastra uma divida pelo formulario, do jeito que o
@@ -56,10 +62,60 @@ class CadastroDeDividaTest {
     private CarteiraService carteira;
 
     private Long cadastrarCliente(String nome) {
+        return cadastrarCliente(nome, null);
+    }
+
+    private Long cadastrarCliente(String nome, String telefone) {
         ClienteForm form = new ClienteForm();
         form.setNome(nome);
+        form.setTelefone(telefone);
         form.setAtivo(true);
         return clienteService.salvar(form).getId();
+    }
+
+    @Test
+    @WithMockUser(username = "HERA123", roles = "ADMIN")
+    void painelAbreComClienteAtrasadoQueTemTelefone() throws Exception {
+        // Regressao: o link do WhatsApp era montado no template com regex, e a
+        // expressao estourava — derrubando o Painel inteiro na tela de erro.
+        //
+        // O bug passou pela verificacao manual porque os clientes de teste nao
+        // tinham telefone, e a expressao so era avaliada quando havia um. Por
+        // isso este teste cadastra o cliente COM telefone e em atraso.
+        Long clienteId = cadastrarCliente("Cliente com telefone", "(83) 99999-8888");
+
+        mvc.perform(post("/cobrancas").with(csrf())
+                        .param("clienteId", clienteId.toString())
+                        .param("descricao", "Fiado vencido")
+                        .param("tipo", "VALOR_FECHADO")
+                        .param("valorTotal", "150")
+                        .param("periodicidade", "MENSAL")
+                        .param("diaDoMes", "5")
+                        .param("dataInicio", LocalDate.now().minusMonths(2).toString()))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("dashboard"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("wa.me/5583999998888")));
+    }
+
+    @Test
+    void telefoneViraLinkDoWhatsAppComDdiEDigitosApenas() {
+        assertThat(pendencia("(83) 99999-8888").getWhatsapp()).isEqualTo("https://wa.me/5583999998888");
+        assertThat(pendencia("83999998888").getWhatsapp()).isEqualTo("https://wa.me/5583999998888");
+        // Já com DDI, não duplica o 55.
+        assertThat(pendencia("5583999998888").getWhatsapp()).isEqualTo("https://wa.me/5583999998888");
+        // Sem número utilizável, não monta link — a tela mostra como texto.
+        assertThat(pendencia(null).getWhatsapp()).isNull();
+        assertThat(pendencia("").getWhatsapp()).isNull();
+        assertThat(pendencia("9999").getWhatsapp()).isNull();
+    }
+
+    private PendenciaCliente pendencia(String telefone) {
+        return new PendenciaCliente(1L, "Fulano", telefone, null,
+                BigDecimal.TEN, BigDecimal.ZERO, BigDecimal.TEN, BigDecimal.ZERO,
+                0, 1, null, null, List.of());
     }
 
     @Test
