@@ -100,12 +100,18 @@
                           O telefone abre a conversa no WhatsApp com um toque.
                           Antes era texto solto: para cobrar, o dono copiava o
                           número na mão — sendo que cobrar é a razão do produto.
-                          O wa.me exige só dígitos, com o 55 na frente.
+
+                          O link é montado em PendenciaCliente#getWhatsapp, no
+                          Java. Fazer a limpeza do número aqui, com regex de
+                          template, derrubava o Painel inteiro.
                         -->
-                        <a th:if="${d.telefone()}" target="_blank" rel="noopener"
+                        <a th:if="${d.whatsapp != null}" target="_blank" rel="noopener"
                            class="contato-zap"
-                           th:href="'https://wa.me/55' + ${#strings.replaceAll(d.telefone(), '\D', '')}"
+                           th:href="${d.whatsapp}"
                            th:text="${d.telefone()}"></a>
+                        <!-- Telefone incompleto ou sem número: mostra como texto. -->
+                        <span th:if="${d.whatsapp == null and d.telefone() != null}"
+                              th:text="${d.telefone()}"></span>
                         <a th:if="${d.instagram()}" target="_blank" rel="noopener"
                            th:href="'https://instagram.com/' + ${#strings.replace(d.instagram(), '@', '')}"
                            th:text="'@' + ${#strings.replace(d.instagram(), '@', '')}"></a>
